@@ -1,5 +1,4 @@
 # controllers/qa_controller.py
-
 from fastapi import APIRouter, HTTPException
 from helper.file_processing import initialize_pinecone, initialize_embeddings
 from langchain.chat_models import ChatOpenAI
