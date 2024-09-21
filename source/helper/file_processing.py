@@ -1,13 +1,12 @@
-# helper/file_processing.py
-
 import os
-from langchain.document_loaders import PyPDFLoader
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
+# Update imports to use langchain_community
+from langchain_community.document_loaders import PyPDFLoader  # Updated import for PDF loading
+from langchain_experimental.text_splitter import SemanticChunker  # This import remains the same
+from langchain_community.embeddings import OpenAIEmbeddings  # Updated import for embeddings
+from langchain_pinecone import PineconeVectorStore  # No changes required here
 from helper.config import get_settings
 import pinecone
-from pptx import Presentation
+from pptx import Presentation 
 
 # Initialize OpenAI Embeddings
 def initialize_embeddings():

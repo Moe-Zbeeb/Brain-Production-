@@ -1,13 +1,17 @@
 # controllers/qa_controller.py
+
 from fastapi import APIRouter, HTTPException
 from helper.file_processing import initialize_pinecone, initialize_embeddings
-from langchain.chat_models import ChatOpenAI
+from helper.config import get_settings
+from langchain_community.chat_models import ChatOpenAI  # Updated import for ChatOpenAI
 from langchain.chains import RetrievalQA
 
 qa_router = APIRouter(
     prefix="/api/v1/qa",
     tags=["Question Answering"]
 )
+
+# Rest of your code remains the same...
 
 @qa_router.get("/ask")
 async def ask_question(query: str, index_name: str):
