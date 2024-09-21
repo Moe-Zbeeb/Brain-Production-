@@ -2,7 +2,6 @@
 
 from fastapi import APIRouter, HTTPException
 from helper.file_processing import initialize_pinecone, initialize_embeddings
-from helper.config import get_settings
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 
@@ -12,48 +11,31 @@ qa_router = APIRouter(
 )
 
 @qa_router.get("/ask")
-async def ask_question(query: str):
+async def ask_question(query: str, index_name: str):
     try:
+        # Validate the index name provided by the user
+        if not index_name or not index_name.isalnum():
+            raise HTTPException(status_code=400, detail="Invalid index name. It must be alphanumeric.")
+
         # Initialize Pinecone and embeddings
         pinecone_instance = initialize_pinecone()
         embeddings = initialize_embeddings()
 
-        # Connect to Pinecone index
-        settings = get_settings()
-        index_name = settings.PINECONE_INDEX_NAME
+        # Check if the index exists
+        if index_name not in pinecone_instance.list_indexes():
+            raise HTTPException(status_code=404, detail=f"Index '{index_name}' not found.")
+
+        # Connect to the specified Pinecone index
         index = pinecone_instance.Index(index_name)
-        
-        # Set up retrieval and question-answering chain with strict prompt constraints
-        llm = ChatOpenAI(
-            model="gpt-4", 
-            temperature=0,  # Lower temperature to reduce creative output
-            openai_api_key=settings.OPENAI_API_KEY
-        )
 
-        # Define a stricter prompt to keep responses on-topic
-        strict_prompt = (
-            "You are a highly knowledgeable assistant that can only answer based on the provided context. "
-            "Do not provide information that is not directly supported by the context below. "
-            "If you don't know the answer, respond with 'I don't have the knowledge about that topic.'"
-        )
+        # Set up retrieval and question-answering chain
+        llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=embeddings.openai_api_key)
+        qa_chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=index.as_retriever())
 
-        # Set up the QA chain with the strict prompt
-        qa_chain = RetrievalQA.from_chain_type(
-            llm=llm, 
-            chain_type="stuff", 
-            retriever=index.as_retriever(),
-            verbose=True,
-            initial_prompt=strict_prompt
-        )
+        # Get the answer to the query
+        answer = qa_chain({"query": query})
 
-        # Execute the QA chain with the query
-        response = qa_chain({"query": query})
-
-        # Check if the response is relevant or indicates a lack of information
-        if "I don't have the knowledge about that topic." in response["text"]:
-            return {"answer": "The answer is not available in the current database context."}
-        
-        return {"answer": response["text"]}
+        return {"answer": answer["text"]}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error answering question: {str(e)}")
