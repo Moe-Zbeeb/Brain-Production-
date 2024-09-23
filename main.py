@@ -10,7 +10,7 @@ def read_root():
     return {"message": "Welcome to the Chatbot API!"}
 
 app.include_router(router)
-# Run the app with Uvicorn
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

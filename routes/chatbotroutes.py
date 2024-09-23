@@ -76,3 +76,24 @@ def ask_question(request: AskRequest):
         return {"answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+@router.post("/reset")
+def reset_bot(index_name: str):
+    """
+    Reset the FAISS index for a specific ChatBot instance.
+
+    Args:
+        index_name (str): The name of the index to reset.
+
+    Returns:
+        A success message if the reset is successful.
+    """
+    bot = bots.get(index_name)
+    if not bot:
+        raise HTTPException(status_code=404, detail="ChatBot instance not found.")
+    
+    try:
+        # Reset the ChatBot instance
+        bot.reset()
+        return {"message": f"ChatBot for index '{index_name}' has been reset successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")

@@ -109,3 +109,15 @@ class ChatBot:
         # Updated deprecated method `run` to `invoke`
         answer = qa({"query": query + " If a response cannot be formed strictly using the context, politely say you don’t have knowledge about that topic."})
         return answer
+
+    def reset(self):
+        """
+        Reset the FAISS dataset by reinitializing the index.
+        This clears all existing data and starts with a fresh state.
+        """
+        try:
+            # Reinitialize the FAISS vector store to clear its data
+            self.vectorstore = FAISS(index=None, embeddings=self.embeddings)  # Creating a new empty FAISS index
+            print(f"FAISS index '{self.index_name}' has been reset.")
+        except Exception as e:
+            print(f"Failed to reset FAISS index: {str(e)}")
