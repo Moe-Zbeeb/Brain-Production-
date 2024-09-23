@@ -3,7 +3,7 @@ import re
 from langchain_community.document_loaders import PyPDFLoader  # Updated import for PyPDFLoader
 from langchain_experimental.text_splitter import SemanticChunker  # Splits large texts into smaller chunks based on semantics
 from langchain_openai import OpenAIEmbeddings  # Updated import for OpenAI embeddings
-from langchain_community.vectorstores import FAISS  # Using FAISS instead of Pinecone
+from langchain_community.vectorstores import FAISS  
 from langchain.chains import RetrievalQA  # Retrieval-based question-answering chain
 from langchain_community.chat_models import ChatOpenAI  # To interact with the GPT model from OpenAI
 from dotenv import load_dotenv
