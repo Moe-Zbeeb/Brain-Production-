@@ -1,4 +1,4 @@
-# a tester environment for the project to test the functionality of the codeimport re
+import re
 import pinecone  # Import Pinecone library for vector database functionality
 from pinecone import ServerlessSpec  # Specification for creating a Pinecone index in serverless mode
 from langchain_community.document_loaders import PyPDFLoader  # To load PDF files as documents
@@ -13,7 +13,7 @@ import os
 os.environ['PINECONE_API_KEY'] = 'cd4f53f7-4807-4868-81dd-c15760aa0b36'
 os.environ['OPENAI_API_KEY'] = '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'
 class ChatBot:
-    def _init_(self, index_name):
+    def __init__(self, index_name):
         """
         Initialize the ChatBot class by setting API keys, setting up embeddings,
         and creating or connecting to a Pinecone index.
@@ -26,7 +26,7 @@ class ChatBot:
         self.__pinecone_key = "cd4f53f7-4807-4868-81dd-c15760aa0b36"
 
         # Ensure the API keys are provided, or raise an error
-        if not self._openai_key or not self._pinecone_key:
+        if not self.__openai_key or not self.__pinecone_key:
             raise ValueError("Please set your OpenAI and Pinecone API keys.")
 
         # Set up OpenAI embeddings using the specified model
@@ -140,13 +140,11 @@ class ChatBot:
         # Assuming qa is a chain type
         qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=self.vectorstore.as_retriever())
 
-        # Updated method call from _call_ to invoke
+        # Updated method call from __call__ to invoke
         answer = qa.invoke({"query": query})
         return answer
 
     
-
-
 
 
     def load_vectorstore(self):
