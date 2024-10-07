@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
-from chatbot.chatbot import ChatBot  # Import the ChatBot class from chatbot.py
+from chatbot.chatbot import ChatBot  # Import the ChatBot class from the correct file
+
+app = FastAPI()
 
 # Create a router object
 router = APIRouter()
@@ -10,6 +12,7 @@ router = APIRouter()
 bots = {}
 
 
+# Pydantic model for requests
 class TrainRequest(BaseModel):
     index_name: str
     file_paths: List[str]
@@ -20,6 +23,7 @@ class AskRequest(BaseModel):
     question: str
 
 
+# Route to initialize the ChatBot instance
 @router.post("/initialize")
 def initialize_bot(index_name: str):
     """
@@ -40,8 +44,18 @@ def initialize_bot(index_name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Route to train the ChatBot instance
 @router.post("/train")
 def train_bot(request: TrainRequest):
+    """
+    Train the ChatBot instance with PDF files.
+    
+    Args:
+        request (TrainRequest): The request body containing index name and file paths.
+
+    Returns:
+        Success message if training is successful.
+    """
     bot = bots.get(request.index_name)
     if not bot:
         raise HTTPException(status_code=404, detail="ChatBot instance not found.")
@@ -50,11 +64,10 @@ def train_bot(request: TrainRequest):
         bot.train(request.file_paths)
         return {"message": f"ChatBot for index '{request.index_name}' trained successfully."}
     except Exception as e:
-        # Log the detailed exception for debugging purposes
-        print(f"Error during training: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Training failed: {str(e)}")
 
 
+# Route to ask a question to the ChatBot
 @router.post("/ask")
 def ask_question(request: AskRequest):
     """
@@ -71,15 +84,17 @@ def ask_question(request: AskRequest):
         raise HTTPException(status_code=404, detail="ChatBot instance not found.")
     
     try:
-        # Ask the question and return the answer
         answer = bot.ask_question(request.question)
         return {"answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Route to reset the ChatBot instance
 @router.post("/reset")
 def reset_bot(index_name: str):
     """
-    Reset the FAISS index for a specific ChatBot instance.
+    Reset the Pinecone index for a specific ChatBot instance.
 
     Args:
         index_name (str): The name of the index to reset.
@@ -92,8 +107,10 @@ def reset_bot(index_name: str):
         raise HTTPException(status_code=404, detail="ChatBot instance not found.")
     
     try:
-        # Reset the ChatBot instance
         bot.reset()
         return {"message": f"ChatBot for index '{index_name}' has been reset successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
+
+
+# Include the router in the FastAPI app
