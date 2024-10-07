@@ -1,0 +1,125 @@
+[0.00 - 10.00]  So today we are going to be talking about how to structure a machine learning project.
+[10.00 - 12.00]  So we have learned about back propagation.
+[12.00 - 21.00]  We learned about a basic network, we did a refresher about logistic aggression.
+[21.00 - 29.00]  Also we talked about optimization algorithms and some of the things to do to survive against
+[29.00 - 33.00]  overfitting and underfitting overfitting overfitting combines and bias.
+[33.00 - 39.00]  Today we are going to be talking about the structuring a deep learning system.
+[39.00 - 43.00]  First of all we have something called ortho-guaritalization.
+[43.00 - 50.00]  This is a term that you can apply that you should search for hyperparameters or you should attune hyperparameters
+[50.00 - 54.00]  like you are tuning some knobs in our device.
+[55.00 - 59.00]  So to fit the training data you have its own knob.
+[59.00 - 65.00]  So basically you should build your model and if you need to fit your training data well,
+[65.00 - 72.00]  you need to systematically increase the complexity of your function.
+[72.00 - 76.00]  To reduce the variance we have special knobs for this.
+[76.00 - 81.00]  You should be with these knobs if you are at a high variance problems.
+[81.00 - 90.00]  Basically regularize the opportunities, drop out, mainly get more data, data augmentation,
+[90.00 - 93.00]  and stopping, sounds for them.
+[95.00 - 98.00]  You are poor on test set.
+[98.00 - 103.00]  So basically try a bigger development set.
+[103.00 - 106.00]  This is a knob for being poor on test set.
+[107.00 - 116.00]  This will apply that your development set is not well representative of the real world or test set data.
+[116.00 - 127.00]  If you are not doing well on your real world data, basically you should improve the quality of the test and development set.
+[127.00 - 133.00]  You should get some more real world data and put them in the test and development set.
+[133.00 - 143.00]  So basically go to people, let them label some data points you have and then include those in your dev and test sets.
+[143.00 - 151.00]  Orthogonalization will get our will going to apply that you should do a specific action for one and only one goal.
+[151.00 - 161.00]  This is because there is many trade-offs in deep learning and maybe if there is one knob that will get us systematically control two goals,
+[161.00 - 164.00]  this will get a effect.
+[164.00 - 172.00]  We will not get a reach neither of our goals because of deep learning is all about trade-offs.
+[172.00 - 187.00]  So basically if you are using an early stopping mechanism, maybe you are stopping one, one that training, error and the dev error are far from each other.
+[188.00 - 206.00]  But the reality is that you can fit the data, the training data more and the reality maybe that, yeah, so the reality maybe that you can fit the training data more or simply you can
+[206.00 - 217.00]  overfit them regularize. Basically the early stopping we are going to affect the dev how well you are doing on the dev set and how well you are doing on the training set.
+[217.00 - 224.00]  So it will be hard to maintain what is your limits, to maintain what is your limits on both.
+[224.00 - 229.00]  You can do better on your training set.
+[229.00 - 238.00]  And you don't know about this because of the dev set error.
+[238.00 - 248.00]  We should set a goal like an evaluation metric, especially for rectification algorithms.
+[248.00 - 257.00]  So we should set the right goal and optimize for it. We have a set of evaluation metrics.
+[257.00 - 269.00]  We have the accuracy of course, which is how much you get classified data examples right of all the data examples you have.
+[269.00 - 281.00]  So if you are familiar with the square thing for the classification metrics, it is through positives plus through negatives over the whole thing, through positives, through negatives, false positives and false positives.
+[281.00 - 290.00]  And we have precision. Precision is basically the intuition of precision out of the guys that you predicted as positive.
+[290.00 - 300.00]  How much they are really, how much there is true positives. So it's true positives over the true positives plus false positives.
+[300.00 - 308.00]  The recall is something to evaluate out of all the positive examples how well you are doing.
+[308.00 - 312.00]  So it's the true positives over the true positives plus false negatives.
+[312.00 - 326.00]  False negative is a true labeled positive. So if you need to evaluate how well you are doing on the positive examples, you should evaluate the true positives over the true positives plus false negatives.
+[326.00 - 338.00]  If you need a trade-off between precision and recall, you should use the affron sport, which is basically the two times precision times recall over the precision plus recall.
+[338.00 - 359.00]  And this is very useful precision and recall and maybe designing your own metric is very useful since there is some cases that I can see will not give you the true answer of how well you are doing on your problem.
+[359.00 - 384.00]  So let's say you are classifying for frauds for fraud detection. And the issue is, and you have in your training or you have in your test set 100 examples where 99 of these 100 examples are negatives and one is positive.
+[384.00 - 402.00]  And you got 99% accuracy. Well, you should see if you predicted this 1% this 1 data point that is representing the positive or the non-major class in the test set or not.
+[402.00 - 411.00]  So you should use the recall for example, or for order precision or whatever you feel right for your problem.
+[411.00 - 430.00]  As a satisfying metric is a metric that you are okay with and you are flexible with. An optimization metric is like precision or recall of front score. It's something that you aim to reach and you will still and you will iteratively do whatever you can in order to reach that.
+[430.00 - 449.00]  Basically, a satisfying metric could be the running time of an algorithm, the space of this algorithm and the optimization metric could be accuracy precision and the main goal of the machine learning problem you are solving.
+[449.00 - 466.00]  The most important thing is that the training distribution could be good, or it's okay, it's okay about challenging to be different than the dev and test sets the distributions.
+[466.00 - 476.00]  But it's not okay and it should not be okay to have a train and dev sets of different distributions.
+[476.00 - 484.00]  They should be exactly the same distribution since this is a thing that you are optimizing for and looking to improve.
+[484.00 - 495.00]  You can train and you can fit the training data in many ways and easily these days with these deep models.
+[495.00 - 508.00]  But the dev and test sets should be your goal to optimize for and the goal to hit the right answer on and then they should be from the same distributions.
+[508.00 - 519.00]  You should log the dev set while you are training the dev set error while you are training and then just note your accuracy on test set.
+[519.00 - 530.00]  This should be very similar from the same distribution.
+[530.00 - 543.00]  We talked about metrics but basically what I need to say in this slide that you may customize your metrics.
+[543.00 - 554.00]  So you can, for example, give a high weight for classifying a pawn image as a cat.
+[554.00 - 571.00]  But basically use orthodontalization and take each thing in your deep learning or a machine learning project as once to tune for it and not only to tune for many goals.
+[571.00 - 577.00]  Just tune for one goal and it should be okay. We are orthodontalization.
+[577.00 - 582.00]  Human level performance is the best thing a human can do on a specific problem.
+[582.00 - 594.00]  We can't do with the training how well we are doing on training, cancer pass, how well a human can do on this trunk of data, sorry on this problem.
+[594.00 - 602.00]  But we can't do something called the base error which is the best error error.
+[602.00 - 630.00]  The reason why we after suppressing the human level performance or the human base error, the reason why we are very slow to reach the limits or the borders of base error is that human level performance is in many problems just like the base error or just nearly, or nearly a little bit down the base error.
+[631.00 - 639.00]  This is a graph illustrating what I have just said. So we see the accuracy of a problem, improving over time.
+[639.00 - 648.00]  It surpasses the human level error or the human level performance. But then it's cancer pass the base error.
+[648.00 - 664.00]  And you see that the change here, the stop change is nearly zero because we are starting too fast and then the base error is nothing but a simple, a simple notch up for the human level performance and we can surpass it.
+[664.00 - 667.00]  So we're going to have flat take.
+[668.00 - 679.00]  And avoidable bias is a bias on your, okay so think of a bias as having a complex function.
+[679.00 - 694.00]  Avoidable bias is, oh sorry, think of a bias as the training as the training error. And avoidable bias is the error that you can avoid between you and the human level performance.
+[694.00 - 705.00]  So the error difference in error between the training error and the human level performance is nothing but an avoidable bias. You can avoid it and surpass it.
+[709.00 - 724.00]  Okay so first of all, if you need to focus on improving bias, you should note that you are doing much less than the human level performance.
+[724.00 - 735.00]  If you need to improve for variants, you should note that you are in an environment where the, the data error is very different than the training error.
+[736.00 - 741.00]  The difference between the training error and the human error as we said is the avoidable bias.
+[746.00 - 754.00]  Okay so the human level performance is the best thing we can reach, the best thing we can reach as in our problem.
+[755.00 - 775.00]  But, think is that, think is that when we are choosing the human level performance, let's say you have three doctors and one doctor noted that the error on a problem is 1%, and the other is 2%, and the other is said 3%.
+[775.00 - 781.00]  What we should take as human level performance is the third, which is the maximum of 3%.
+[782.00 - 790.00]  If we need to optimize for avoidable bias, as we said, this means that we are under fitting.
+[790.00 - 796.00]  So the key is to train a bigger, the key is to improve your network quality.
+[796.00 - 803.00]  Training, training more, get a bigger, maybe you can choose another and your analytical architecture.
+[804.00 - 815.00]  If you need to improve for variants for the difference between the dev and test, the dev and train errors, you need to accommodate for the data.
+[815.00 - 821.00]  So get for data, do some data augmentations, regularize or simply choose a different neural network architecture.
+[821.00 - 830.00]  What you should note is that the variance is very complex function.
+[830.00 - 842.00]  So when you are improving variants problem, what you should do is nothing but regularize and complex the data more in order to get the complexity of this function down.
+[842.00 - 850.00]  In other analysis, what we do is note down in a CSV, also your misclassified examples.
+[850.00 - 857.00]  And you should accommodate also for the misclassified ones because of mislabel.
+[858.00 - 864.00]  And this is going to give you some better sense of what you are missing in your machine learning problem.
+[868.00 - 876.00]  Okay, so whatever is done for the test, for the train, data set should be also done for the test data sets.
+[876.00 - 886.00]  Also note that, sorry, whatever is done for the train data set should be done for the test and dev data sets.
+[887.00 - 893.00]  Okay, especially for the dev and test, especially between the dev and test data sets.
+[893.00 - 900.00]  The training might come slightly from a different distribution, but focus on having the dev and test set from the same distribution.
+[901.00 - 922.00]  Okay, so also one thing is that when you are normalizing your inputs in the, when you are normalizing the inputs in to the network, to the neural net,
+[923.00 - 929.00]  you use the same mean and variance to normalize for the dev and test sets.
+[929.00 - 937.00]  Okay, idea is to build your system quickly and then iterate over and over to avoid bias or variance.
+[943.00 - 950.00]  Suppose we have a 200k examples from that distribution and 10k examples from the other distribution.
+[951.00 - 958.00]  It also happens that the images that we need to classify are from the distribution B, which is the 10k I think.
+[959.00 - 976.00]  What is the good thing to do? We have an option of mixing A and B and randomly, and randomly, and randomly splitting the data and then train and then train test and the dev on the given split.
+[977.00 - 985.00]  Or we have the option of training on the 10k on the 200k and then splitting the 10k between test and dev.
+[986.00 - 994.00]  It turns out that a good thing to do is to take the 200k and train on them.
+[994.00 - 1002.00]  Develop your function on the 200k and let this function optimize for the 10k for the dev and test.
+[1003.00 - 1009.00]  And this makes sense because what we need to optimize, the test and dev sets are things that we need to optimize for.
+[1011.00 - 1016.00]  So you need to optimize for the 10k examples, so put them in the dev and test to set.
+[1019.00 - 1023.00]  Yeah, we can be talking about training development set.
+[1024.00 - 1042.00]  So when it happens to be a different distribution between the training and the dev set, you don't know if you are doing poor on the dev set because of data mismatch or because of simply overfitting on the training data.
+[1043.00 - 1054.00]  So what we introduce is a training dev set, a bit chunked from the training data and then after training on the regular training set, you can evaluate on the training dev.
+[1055.00 - 1065.00]  If the error is high, then you are overfitting the training data set. If the error is low, then you are doing just right on the training data set.
+[1066.00 - 1074.00]  And then you can evaluate on the development data set and see if the error is from the data mismatch or if you are doing good.
+[1076.00 - 1085.00]  Types of errors are avoidable bias, which is the difference between the error between the human level performance and the training error.
+[1086.00 - 1096.00]  We have the variance, which is the difference between the dev, how well we are doing on the dev set and how well we are doing on the training set.
+[1097.00 - 1104.00]  We have the data mismatch, which is between the training, the dev and the dev set.
+[1105.00 - 1119.00]  Training set and the dev set. So note your error between the training dev set and the dev set itself and then you should see if you are doing bad on the dev set because of data mismatch.
+[1120.00 - 1127.00]  The degree of overfitting is the last thing to note after training between the dev set and the dev set itself.
+[1128.00 - 1141.00]  Some concepts closing the lecture is transfer learning. Transfer learning is going to use a bigger network, pre-trained on another problem.
+[1142.00 - 1149.00]  And we take the neural network that is pre-trained, we take the weights of this neural network.
+[1150.00 - 1163.00]  We may freeze them, we may add some layers to accommodate for our goal, but things to note are, that's a and b may have the same input, so you will consider transfer learning.
+[1164.00 - 1170.00]  You have a lot of data for a, but a little for b, so you train on a and then you find tune on b.
+[1171.00 - 1177.00]  All other features of a are the same of b, so you also train on a, find tune on b.
+[1179.00 - 1188.00]  This is an illustration of transfer learning, so we train on image net, so now our neural network know about colors, about shapes, maybe how faces are.
+[1189.00 - 1208.00]  But then we find tune on medical datasets, and these and the neural network, and the neural network now shares the information or the good thing to say is that the neural network will get transferred from the first experiment to the next experiment.
+[1208.00 - 1217.00]  By simply, let's say, accommodating for predicting the red color, predicting the white color, predicting the circular shape, so on and so forth.
+[1218.00 - 1236.00]  Multitas clinic is when we train a very huge neural network for n different goals, so we have a big neural network sharing the end goals, share the same role of features, big neural network and then we have maybe a softmax layer right here.
+[1236.00 - 1248.00]  Maybe we have a regression unit right here, maybe we have a signal unit right here, so you predict many things and you have multiple outcomes.
+[1255.00 - 1261.00]  The amount of data per goal may be the same, maybe the same.
+[1261.00 - 1290.00]  And to end deep learning is when we throw feature engineering and throw other prerequisites for modeling and just throw the data to row data itself for a model to fit well and to develop a very complex function in order to predict and get right answers without the need of prerequisites of modeling, which are feature engineering and same normalizations.
+[1291.00 - 1298.00]  That's so unsophistic. And this has many downsides we can talk more about later.
