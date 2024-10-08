@@ -1,11 +1,6 @@
 import os
 from fastapi import FastAPI
-from routes.transcription_routes import router as transcription_router  # Routes for video transcription
-from routes.chatbotroutes import router as chatbot_router  # Routes for chatbot
-
-# Load environment variables
-os.environ['PINECONE_API_KEY'] = 'your_pinecone_api_key'
-os.environ['OPENAI_API_KEY'] = 'your_openai_api_key'
+from routes.transcription_routes import router as transcription_router  # Import transcription routes
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -17,9 +12,6 @@ def read_root():
 
 # Include the transcription routes
 app.include_router(transcription_router, prefix="/video")
-
-# Include the chatbot routes
-app.include_router(chatbot_router, prefix="/chatbot")
 
 if __name__ == "__main__":
     import uvicorn
