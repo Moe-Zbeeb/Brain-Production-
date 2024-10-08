@@ -32,3 +32,4 @@ async def transcribe_video(video_path: str, model_size: str = "base"):
         return transcription
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+    
