@@ -29,7 +29,6 @@ async def transcribe_video(video_path: str, model_size: str = "base"):
     try:
         # Process the video: extract audio, transcribe, and return the transcription
         transcription = transcription_service.process_video(video_path, model_size=model_size)
-        return transcription
+        return {"transcription": transcription}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
-    
