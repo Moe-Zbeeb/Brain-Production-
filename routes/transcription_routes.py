@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import os
 import shutil
-from VideoProces.transcript import VideoTranscriptionService
+from VideoProces.transcript import VideoTranscriptionService  # Make sure this path is correct
 
 # Initialize the transcription service
 transcription_service = VideoTranscriptionService()
@@ -29,6 +29,6 @@ async def transcribe_video(video_path: str, model_size: str = "base"):
     try:
         # Process the video: extract audio, transcribe, and return the transcription
         transcription = transcription_service.process_video(video_path, model_size=model_size)
-        return {"transcription": transcription}
+        return transcription
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
