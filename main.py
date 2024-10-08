@@ -16,7 +16,7 @@ def read_root():
     return {"message": "Welcome to the Chatbot API!"}
 
 # Include the router for the chatbot functionality
-app.include_router(router, prefix="/api/v1")
+app.include_router(router, prefix="")
 
 if __name__ == "__main__":
     # Run the application using Uvicorn
