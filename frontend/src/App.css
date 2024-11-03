@@ -1,0 +1,39 @@
+.App {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #f4f4f9;
+  }
+  
+  h2 {
+    text-align: center;
+  }
+  
+  label {
+    font-weight: bold;
+    margin-top: 10px;
+    display: block;
+  }
+  
+  input, textarea, button {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  button {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  
+  button:hover {
+    background-color: #218838;
+  }
+  
