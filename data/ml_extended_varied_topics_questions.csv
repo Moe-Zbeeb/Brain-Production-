@@ -1,0 +1,75 @@
+Topic,Question
+Supervised Learning,What are some common supervised learning algorithms?
+Reinforcement Learning,What is the difference between a policy and a value function?
+Feature Engineering,What are the advantages of automated feature selection?
+Natural Language Processing,What is the role of subword tokenization in NLP?
+Optimization,How do learning rate schedules help training?
+Optimization,Why is the learning rate important in optimization?
+Unsupervised Learning,How does clustering differ from classification?
+Reinforcement Learning,What is the purpose of a value function in reinforcement learning?
+Feature Engineering,"What is feature importance, and how is it measured?"
+Reinforcement Learning,How does reinforcement learning differ from supervised learning?
+Unsupervised Learning,How is k-means clustering initialized?
+Deep Learning,What is the role of backpropagation in deep learning?
+Natural Language Processing,What is the significance of pre-trained models in NLP?
+Feature Engineering,How does feature selection improve model performance?
+Natural Language Processing,How does sentiment analysis work in NLP?
+Optimization,What is the difference between convex and non-convex optimization problems?
+Natural Language Processing,How do transformers revolutionize NLP tasks?
+Deep Learning,How does batch normalization stabilize training?
+Supervised Learning,What are some real-world examples of supervised learning?
+Supervised Learning,How does data imbalance affect model performance?
+Natural Language Processing,How do attention mechanisms work in NLP models?
+Unsupervised Learning,What is the elbow method in clustering?
+Natural Language Processing,How does sequence-to-sequence modeling work?
+Optimization,What is the role of batch size in gradient descent?
+Feature Engineering,Why is normalization crucial in feature engineering?
+Supervised Learning,How does early stopping prevent overfitting?
+Optimization,"What is learning rate decay, and why is it used?"
+Deep Learning,What is the difference between CNNs and RNNs?
+Feature Engineering,How does polynomial feature generation improve models?
+Deep Learning,"What is transfer learning, and how is it applied?"
+Optimization,What is the difference between SGD and Adam optimizers?
+Supervised Learning,What is the importance of the bias-variance tradeoff?
+Optimization,What is the purpose of regularization in optimization?
+Reinforcement Learning,What is the difference between actor-critic methods and Q-learning?
+Optimization,How does the Adam optimizer improve gradient descent?
+Unsupervised Learning,What are density-based clustering methods?
+Deep Learning,What is the difference between a perceptron and a multilayer perceptron?
+Unsupervised Learning,How do hierarchical clustering methods work?
+Natural Language Processing,How do word embeddings capture semantic meaning?
+Reinforcement Learning,What is the Bellman equation?
+Supervised Learning,What is the significance of hyperparameter tuning in supervised models?
+Supervised Learning,How does overfitting impact supervised learning models?
+Supervised Learning,What is the role of labeled data in supervised learning?
+Optimization,What is the role of momentum in optimization algorithms?
+Supervised Learning,How do decision trees handle continuous data?
+Unsupervised Learning,What are common applications of dimensionality reduction?
+Natural Language Processing,What are the challenges of tokenizing text in NLP?
+Reinforcement Learning,What are the key differences between Q-learning and SARSA?
+Feature Engineering,What are interaction terms in feature engineering?
+Unsupervised Learning,What is the role of hierarchical clustering?
+Deep Learning,What are the main components of a convolutional neural network?
+Unsupervised Learning,What are some examples of unsupervised learning algorithms?
+Feature Engineering,How can domain knowledge improve feature engineering?
+Supervised Learning,What is the difference between supervised and unsupervised learning?
+Deep Learning,What is the purpose of dropout in deep neural networks?
+Optimization,What is the role of gradient clipping?
+Deep Learning,How do deep neural networks handle complex patterns?
+Reinforcement Learning,What are some examples of reinforcement learning applications?
+Feature Engineering,"What is feature scaling, and why is it important?"
+Supervised Learning,What is the role of validation data in supervised learning?
+Reinforcement Learning,What is temporal difference learning?
+Deep Learning,What is the function of activation layers in neural networks?
+Optimization,What is gradient descent with momentum?
+Feature Engineering,How does categorical feature encoding work?
+Deep Learning,What is the architecture of a transformer model?
+Natural Language Processing,How is BERT used for text classification?
+Natural Language Processing,"What is tokenization, and why is it important in NLP?"
+Reinforcement Learning,What is the Markov decision process?
+Deep Learning,"What are vanishing gradients, and how are they mitigated?"
+Feature Engineering,"What is one-hot encoding, and when is it used?"
+Reinforcement Learning,What is the reward signal in reinforcement learning?
+Reinforcement Learning,What is the exploration-exploitation tradeoff in RL?
+Unsupervised Learning,What are the challenges of evaluating clustering algorithms?
+Unsupervised Learning,"What is dimensionality reduction, and how does it help unsupervised learning?"
