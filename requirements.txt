@@ -12,4 +12,5 @@ pandas==2.0.3
 wordcloud==1.8.2
 gtts==2.3.3
 pytube
-assemblyai
+assemblyai 
+sentence_transformers
