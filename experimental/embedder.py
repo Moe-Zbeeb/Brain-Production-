@@ -1,7 +1,4 @@
-# First, ensure you have the required libraries installed.
-# You can install them using pip if you haven't already:
 
-# !pip install sentence-transformers numpy
 
 from sentence_transformers import SentenceTransformer
 import numpy as np
