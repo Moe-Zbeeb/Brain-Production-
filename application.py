@@ -15,7 +15,7 @@ from langchain.cache import InMemoryCache
 from langchain.chains import RetrievalQA
 from langchain.chains.summarize import load_summarize_chain
 from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+from langchain.prompts import PromptTemplate    
 from langchain.prompts import ChatPromptTemplate
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
@@ -27,8 +27,9 @@ from gtts import gTTS
 from models import User, Course, CourseFile, StudentQuestion
 from io import BytesIO
 from wordcloud import WordCloud, STOPWORDS
-from application1 import about_page,contact_page,inject_css, inject_css2,set_overlay_bg_image, encode_image_to_base64
+from application1 import about_page, contact_page, inject_css, inject_css2, set_overlay_bg_image, encode_image_to_base64
 from PIL import Image
+
 # ---------------------- Configuration ----------------------
 
 # Configure logging
@@ -61,6 +62,7 @@ except Exception as e:
     logging.error(f"Failed to initialize OpenAI LLM: {str(e)}")
     st.error(f"Failed to initialize OpenAI LLM: {str(e)}")
     st.stop()
+
 # ---------------------- LangchainHandler Class ----------------------
 
 class LangchainHandler:
@@ -265,34 +267,30 @@ class LangchainHandler:
 langchain_handler = LangchainHandler(llm=llm)
 
 # ---------------------- Helper Functions ----------------------
-def set_bg_image(image_path):
-    with open(image_path, "rb") as f:
-        data = f.read()
-    encoded_img = base64.b64encode(data).decode()
+def set_bg_image():
     st.markdown(
-        f"""
+        """
         <style>
-        .stApp {{
-            background-image: url("data:image/jpeg;base64,{encoded_img}");
-            background-size: cover;
-            background-position: center;
-        }}
+        .stApp {
+            background-color: white !important;
+        }
         </style>
         """,
         unsafe_allow_html=True
     )
 
+
 # ---------------------- Page Functions ----------------------
 
-bg_image_path = r"img\bg-image.jpg"
-set_bg_image(bg_image_path)
+bg_image_path = "img/myim.png"
+set_bg_image()
 
 def signup_page():
     inject_css()
-    bg_image_path = r"img\courses-6.jpg"
-    torn_edge_path = r"img\overlay-top.png"
+    bg_image_path = "img/courses-6.jpg"
+    torn_edge_path = "img/overlay-top.png"
 
-    bg_image_url =set_overlay_bg_image(bg_image_path)
+    bg_image_url = set_overlay_bg_image(bg_image_path)
     torn_edge_url = set_overlay_bg_image(torn_edge_path)
 
     st.markdown(f"""
@@ -490,16 +488,17 @@ def signup_page():
                  session_db.commit()
                  st.markdown('<div class="success-message">Account created successfully! You can now log in.</div>', unsafe_allow_html=True)
                  st.info("Please switch to the Login page.")
+
 def login_page():
     """
     Displays the login and signup page.
     """
     inject_css()
      # Paths to the background image and torn edge graphic
-    bg_image_path = r"img\courses-6.jpg"
-    torn_edge_path = r"img\overlay-top.png"
+    bg_image_path = "img/courses-6.jpg"
+    torn_edge_path = "img/overlay-top.png"
 
-    bg_image_url =set_overlay_bg_image(bg_image_path)
+    bg_image_url = set_overlay_bg_image(bg_image_path)
     torn_edge_url = set_overlay_bg_image(torn_edge_path)
 
     # CSS for the overlay container and torn edge
@@ -759,30 +758,6 @@ def professor_page():
         .logout-button:hover {
             background-color: #f0f0f0;
         }
-    </head>
-    <body>
-        <div class="sidebar">
-            <!-- Sidebar header -->
-            <div class="sidebar-header">Navigation</div>
-
-            <!-- Navigation buttons -->
-            <a href="#" class="nav-button">
-                <img src="https://img.icons8.com/color/48/000000/book.png" alt="Create Course Icon">
-                Create Course
-            </a>
-            <a href="#" class="nav-button">
-                <img src="https://img.icons8.com/color/48/000000/settings.png" alt="Manage Courses Icon">
-                Manage Courses
-            </a>
-
-            <!-- Logout section -->
-            <div class="logout-section">
-                <p>Logged in as:</p>
-                <p>Hassan</p>
-                <button class="logout-button">Logout</button>
-            </div>
-        </div>
-    </body>
     </style>
     """, unsafe_allow_html=True)
 
@@ -819,17 +794,25 @@ def professor_page():
     elif st.session_state.selected_tab == "Manage Courses":
         manage_courses_section()
 
+
+
+
 def home_page():
     inject_css()
 
-    bg_image_path = r"img\header.jpg"
-    torn_edge_path = r"img\overlay-top.png"
+    bg_image_path = "img/thinksmarter.png"
+    torn_edge_path = "img/overlay-top.png"
 
     bg_image_url = set_overlay_bg_image(bg_image_path)
     torn_edge_url = set_overlay_bg_image(torn_edge_path)
 
     st.markdown(f"""
         <style>
+            /* Increase the maximum width of the main content area */
+            .main .block-container {{
+                max-width: 1400px;
+                margin: 0 auto;
+            }}
             .overlay-container {{
                 position: relative;
                 width: 100%;
@@ -879,7 +862,7 @@ def home_page():
                 z-index: 2;
             }}
             .section-wrapper {{
-            margin-top: 50px; 
+                margin-top: 50px; 
             }}
             .about-title {{
                 text-align: left; 
@@ -898,10 +881,11 @@ def home_page():
                 color: white; 
                 padding: 20px;
                 border-radius: 10px; 
+                width: 100%;
+                box-sizing: border-box;
             }}
             .about-content {{
                 flex: 1;
-                max-width: 700px; 
                 margin: 10px;
                 line-height: 1.6; 
                 font-size: 16px;
@@ -917,18 +901,10 @@ def home_page():
                 line-height: 1.8;
                 color: #444;
             }}
-            .about-content {{
-                flex: 1;
-                max-width: 50%; 
-                margin: 0; 
-                padding-top: 0; 
-            }}
-
             .about-image {{
                 position: relative;
                 top: 180px;
                 flex: 1;
-                max-width: 50%; 
                 margin-right: 20px; 
                 margin-left: 20px; 
                 display: flex;
@@ -945,6 +921,8 @@ def home_page():
                 align-items: center;
                 padding: 20px;
                 gap: 0px; 
+                width: 100%;
+                box-sizing: border-box;
             }}
             .stat-card {{
                 flex: 0 1 25px; 
@@ -1001,12 +979,13 @@ def home_page():
                 margin-right: 20px;
             }}
             .features-section {{
-                width: 2000px;
                 display: flex;
                 flex-direction: column;
                 gap: 20px; 
                 padding: 10px;
                 margin-bottom: 40px; 
+                width: 100%;
+                box-sizing: border-box;
             }}
             .feature-item {{
                 display: flex;
@@ -1065,65 +1044,125 @@ def home_page():
                 align-items: flex-start; 
             }}
             .graduate-image img{{
-                width: 100%; /* Ensure the image fills its container */
-                height: auto; /* Maintain aspect ratio */
+                width: 100%; 
+                height: auto; 
+            }}
+
+            /* Aligning the video better */
+            .about-video {{
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 10px;
+                position: relative;
+            }}
+            .about-video video {{
+                max-width: 100%;
+                height: auto;
+                border-radius: 10px;
             }}
         </style>
     """, unsafe_allow_html=True)
     st.markdown(f"""
-        <div class="overlay-container">
-            <div class="overlay"></div>
-            <div class="overlay-content">
-                <h1>ChatCourse</h1>
-                <h2>AI Teaching Assistant</h2>
-            </div>
-        </div>
-        <div class="torn-edge"></div>
+        <style>
+            .overlay-container {{
+                position: relative;
+                width: 100%;
+                height: 300px;
+                background-image: url("{bg_image_url}");
+                background-size: cover;
+                background-position: center;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }}
+        </style>
+        <div class="overlay-container"></div>
     """, unsafe_allow_html=True)
-    # About Section
-    image_path = r"img\about.jpg"
-    about_image = Image.open(image_path)
-    base64_image = encode_image_to_base64(about_image)
 
+    video_path = "img/upload_your_sources.mp4"  # Replace with your actual video path
+    base64_video = encode_video_to_base64(video_path)  # Ensure this function is defined
     st.markdown(f"""
+        <style>
+            .about-section {{
+                display: flex;
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center;
+                width: 100%;
+                color: #1C1C44;
+                padding: 20px;
+                box-sizing: border-box;
+                text-align: center;
+            }}
+            .about-content {{
+                max-width: 800px;
+                margin: 0 auto 30px auto; 
+                font-size: 16px;
+                line-height: 1.8;
+                color: #444;
+            }}
+            .about-content h2 {{
+                text-align: left; 
+                font-size: 30px; 
+                font-weight: bold; 
+                margin-bottom: 20px;
+            }}
+            .about-video {{
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative;
+                margin-top: 20px;
+            }}
+            .about-video video {{
+                max-width: 1000px; 
+                width: 100%;       
+                height: auto;
+                border-radius: 10px;
+                margin: 0 auto; 
+            }}
+        </style>
+
         <div class="about-section">
-            <div class="about-image">
-                <img src="data:image/png;base64,{base64_image}" alt="Graduate style="position: absolute; top: -30px;">
-            </div>
             <div class="about-content">
-                <p style="color: red; font-size: 18px; font-weight: bold; text-align: left; margin-bottom: 5px;">ABOUT US</p>
-                <h2 style="text-align: left; font-size: 30px; font-weight: bold; margin-bottom: 20px;">First Choice For Online Education Anywhere</h2>
+                <h2>Your Personalized AI Teaching Assistant With all of your sources in place</h2>
                 <p>Experience a revolutionary way to learn with our AI-powered educational platform. Combining the latest in artificial intelligence technology, our platform offers personalized learning experiences through an interactive AI chatbot, engaging flashcards, and adaptive learning tools. Whether you're preparing for exams, mastering new skills, or expanding your knowledge, our platform tailors content to your unique needs, helping you learn faster and more effectively. Discover a smarter, more efficient way to achieve your educational goals with the power of AI at your fingertips.</p>
             </div>
+            <div class="about-video">
+                <video autoplay loop muted controls>
+                    <source src="data:video/mp4;base64,{base64_video}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
         </div>
     """, unsafe_allow_html=True)
+
+
     st.markdown("""
         <div class="stats-section">
             <div class="stat-card green">
-                <div class="stat-label">AVAILABLE SUBJECTS</div>
+                <div class="stat-label">UPLOAD RESOURCES</div>
             </div>
             <div class="stat-card blue">
-                <div class="stat-label">ONLINE COURSES</div>
+                <div class="stat-label">INSTANT INSIGHTS</div>
             </div>
             <div class="stat-card red">
-                <div class="stat-label">SKILLED INSTRUCTORS</div>
+                <div class="stat-label">ASSESS KNOWLEDGE</div>
             </div>
             <div class="stat-card yellow">
-                <div class="stat-label">HAPPY STUDENTS</div>
+                <div class="stat-label">LEARN WITH PODCASTER</div>
             </div>
         </div>
-
     """, unsafe_allow_html=True)
-    image_path = r"img\feature.jpg"
-    about_image = Image.open(image_path)
-    base64_img = encode_image_to_base64(about_image)
+
     st.markdown(f"""
         <div class="about-section">
             <div class="graduate-image">
-                <img class="graduate-image" src="data:image/png;base64,{base64_img}" alt="Graduate">
             </div>
             <div class="about-content">
-                <p style="color: red; font-size: 18px; font-weight: bold; text-align: left; margin-bottom: 5px;">WHY CHOOSE US</p>
                 <h2 style="text-align: left; font-size: 30px; font-weight: bold; margin-bottom: 20px;">Why Should You Start Learning with Us?</h2>
                 <p>Join a platform that truly understands your learning needs. Our commitment to innovation ensures a unique, engaging, and personalized education experience. With tools designed to simplify complex topics and foster deep understanding, we empower learners to achieve their goals faster and more effectively. Experience the perfect blend of technology and expertise to take your learning journey to the next level. Let’s make your success our mission!</p>
             </div>
@@ -1136,20 +1175,18 @@ def home_page():
             <div class="feature-icon feature-icon-blue">
                 <img src="https://img.icons8.com/ios-filled/50/ffffff/graduation-cap.png" alt="Skilled Instructors Icon">
             </div>
-    <div class="feature-box">
             <div class="feature-text">
-                <h3>Skilled Instructors</h3>
-                <p>Learn from top professionals with years of teaching and industry experience.</p>
+                <h3>Power study</h3>
+                <p>Upload lecture recordings, textbook chapters, and research papers..</p>
             </div>
-        </div>
         </div>
         <div class="feature-item">
             <div class="feature-icon feature-icon-red">
                 <img src="https://img.icons8.com/ios-filled/50/ffffff/certificate.png" alt="International Certificate Icon">
             </div>
             <div class="feature-text">
-                <h3>International Certificate</h3>
-                <p>Earn certificates recognized globally, enhancing your credentials and opening up opportunities worldwide.</p>
+                <h3>Organize your thinking</h3>
+                <p>create a polished presentation outline, complete with key talking points and supporting evidence..</p>
             </div>
         </div>
         <div class="feature-item">
@@ -1157,13 +1194,14 @@ def home_page():
                 <img src="https://img.icons8.com/ios-filled/50/ffffff/class.png" alt="Online Classes Icon">
             </div>
             <div class="feature-text">
-                <h3>Online Classes</h3>
-                <p>Access flexible and engaging online classes designed to fit into your busy schedule, anytime, anywhere.</p>
+                <h3>Spark new ideas</h3>
+                <p>Fit learning into your schedule using podcasts, anytime, anywhere.</p>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
     inject_css2()
+
 
 def student_page():
     inject_css()
@@ -1309,6 +1347,7 @@ def student_page():
                             st.write(summary)
                         except Exception as e:
                             st.error(f"An error occurred: {e}")
+
 def generate_podcast_for_course(course, openai_api_key):
     """
     Allows students to generate a podcast based on the course materials or by uploading additional PDFs.
@@ -1336,7 +1375,7 @@ def generate_podcast_for_course(course, openai_api_key):
         )
 
 
-# Global CSS override for Streamlit alert messages
+        # Global CSS override for Streamlit alert messages
         st.markdown("""
 <style>
 /* Target any alert box and all elements inside it */
@@ -1530,6 +1569,7 @@ def generate_flashcards_for_course(course):
     # Generate flashcards using LangChainHandler
     flashcards = langchain_handler.generate_flashcards(documents)
     return flashcards
+
 def extract_text_from_pdf(pdf_file_path_or_object):
     """
     Extract text from a PDF file.
@@ -1549,8 +1589,10 @@ def extract_text_from_pdf(pdf_file_path_or_object):
     except Exception as e:
         logging.error(f"Error extracting text from PDF: {e}")
         return ""
+
 def navigate_to(page):
     st.session_state.page = page
+
 def create_course_section():
     """
     Allows professors to create a new course.
@@ -1574,7 +1616,12 @@ def create_course_section():
             if 'courses' in st.session_state:
                 st.session_state.courses.append(new_course)
             else:
-                st.session_state.courses = [new_course]
+                st.session_state.courses = [new_course]  
+
+def encode_video_to_base64(video_path):
+    with open(video_path, "rb") as video_file:
+        return base64.b64encode(video_file.read()).decode('utf-8')
+
 
 def manage_courses_section():
     """
@@ -1589,7 +1636,7 @@ def manage_courses_section():
 
     # Define the path to your backend CSV file
     csv_file_path = "ml_grouped_topics_questions.csv"  # <-- UPDATE THIS PATH
-    book_icon_path = r"img\book.png"
+    book_icon_path = "img/book.png"
     with open(book_icon_path, "rb") as img_file:
         base64_book_icon = base64.b64encode(img_file.read()).decode()
 
@@ -1683,7 +1730,7 @@ def manage_courses_section():
 
                     with tabs[2]:
                         wordcloud_img = generate_wordcloud(df)
-                        st.image(f"data:image/png;base64,{wordcloud_img}", use_container_width =True)
+                        st.image(f"data:image/png;base64,{wordcloud_img}", use_container_width=True)
 
                     with tabs[3]:
                         report = generate_csv_report(csv_file_path)
@@ -1760,6 +1807,7 @@ def generate_wordcloud(df):
     encoded = base64.b64encode(img_bytes).decode()
     plt.close(fig)
     return encoded
+
 def generate_csv_report(csv_file_path):
     """
     Generate a detailed report from the CSV file using the LLM.
@@ -1811,8 +1859,7 @@ def generate_csv_report(csv_file_path):
     except Exception as e:
         logging.error(f"Error generating detailed report: {str(e)}")
         return f"Error generating report: {e}"
-    
-    
+
 st.markdown("""
 <style>
 /* Target the expander using the exact data-testid from the HTML */
@@ -1830,8 +1877,6 @@ h3#listen-to-your-podcast * {
 }
 </style>
 """, unsafe_allow_html=True)
-
-
 
 # ---------------------- Main Function ----------------------
 def main():

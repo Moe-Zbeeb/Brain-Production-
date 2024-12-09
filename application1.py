@@ -3,7 +3,7 @@ import base64
 import os
 import io
 from PIL import Image
-
+#application
 # ---------------------- Helper Functions ----------------------
 
 def set_overlay_bg_image(image_path):
@@ -24,70 +24,36 @@ def encode_image_to_base64(image):
 
 def inject_css():
     footer = """
-    <style>
+ <style>
     footer {
-        background-color: #0A043C;
-        color: white;
-        padding: 5px 0;;
-        width: 100%;
+        background-color: #FFFFFF;
+        color: #333333; /* Black text to match the image style */
+        padding: 10px 20px;
+        width: 100%;block
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
         font-family: Arial, sans-serif;
-        margin-top: 50px; 
+        font-size: 25px; /* Similar size to the example text */
+        margin-top: 50px;
+        border-top: 1px solid #CCCCCC; /* Subtle border to match the clean look */
     }
 
     .footer-left {
-        margin-left: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: white; 
+        text-align: center;
+        line-height: 1.5;
     }
+</style>
 
-    .footer-right {
-        margin-right: 20px;
-        display: flex;
-        gap: 15px;
-    }
+<footer>
+    <div class="footer-left">
+        <span>The ultimate tool for understanding the information that matters most to you, built with GPTs</span>
+    </div>
+</footer>
 
-    .footer-icon img {
-        width: 20px;
-        height: 20px;
-        color: white;
-    }
-
-    .footer-left span {
-        color: white; 
-    }
-    </style>
-
-    <footer>
-        <div class="footer-left">
-            <span>🕻 +961 03 456 789 </span>
-            <span>✉ chatcourse@gmail.com</span>
-        </div>
-        <div class="footer-right">
-            <a href="https://facebook.com" target="_blank" class="footer-icon">
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/facebook.png" alt="Facebook"/>
-        </a>
-            <a href="https://twitter.com" target="_blank" class="footer-icon">
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/twitter.png" alt="Twitter"/>
-            </a>
-            <a href="https://linkedin.com" target="_blank" class="footer-icon">
-                <img src="https://img.icons8.com/ios-filled/50/ffffff/linkedin.png"/>
-            </a>
-            <a href="https://instagram.com" target="_blank" class="footer-icon">
-                <img src="https://img.icons8.com/ios-filled/50/ffffff/instagram-new.png"/>
-            </a>
-            <a href="https://youtube.com" target="_blank" class="footer-icon">
-                <img src="https://img.icons8.com/ios-filled/50/ffffff/youtube-play.png"/>
-            </a>
-        </div>
-    </footer>
     """
     st.markdown(footer, unsafe_allow_html=True)
-    image_path = r"img\online-course.png"
+    image_path = "img/online-course.png"
     with open(image_path, "rb") as img_file:
         base64_image = base64.b64encode(img_file.read()).decode()
 
@@ -96,8 +62,6 @@ def inject_css():
     <div class="header-container">
         <!-- Logo and title -->
         <div class="logo-container">
-            <img src="data:image/png;base64,{base64_image}" alt="ChatCourse Logo" style="width: 40px; height: 40px; vertical-align: middle;">
-            <a href="#" class="logo">ChatCourse</a>
         </div>
     </div>
     <style>
@@ -173,8 +137,6 @@ def inject_css():
 )
 
 def inject_css2():
-    torn_edge_path = r"img\overlay-top.png"
-    torn_edge_url = set_overlay_bg_image(torn_edge_path)
     # Styling for the footer
     st.markdown("""
         <style>
@@ -225,8 +187,8 @@ def inject_css2():
     st.markdown("""
     <div class="footer">
         <div>
-            <h4>ChatCourse</h4>
-            <p>ChatCourse is an intuitive platform for exploring and accessing online courses. It offers a user-friendly design, easy navigation, and personalized learning, making education accessible from anywhere.</p>
+            <h4>T"AI"</h4>  
+            <p>Your Personalized AI Teaching Assistant is a cutting-edge platform designed to transform the learning experience. With interactive AI chatbots, adaptive tools, and engaging resources, it provides a personalized, user-friendly interface that makes mastering new concepts intuitive and accessible from anywhere. Unlock the future of education with an app tailored to your unique learning needs.</p>
         </div>
         <div style="margin-top: 30px;">
             <h4>Get In Touch</h4>
@@ -710,15 +672,14 @@ def about_page():
 
     image_path = r"img\feature.jpg"
     about_image = Image.open(image_path)
-    base64_img = encode_image_to_base64(about_image)
+    base64_img = encode_image_to_base64(about_image)    
     st.markdown(f"""
         <div class="about-section">
             <div class="graduate-image">
                 <img class="graduate-image" src="data:image/png;base64,{base64_img}" alt="Graduate ">
             </div>
             <div class="about-content">
-                <p style="color: red; font-size: 18px; font-weight: bold; text-align: left; margin-bottom: 5px;">WHY CHOOSE US</p>
-                <h2 style="text-align: left; font-size: 30px; font-weight: bold; margin-bottom: 20px;">Why You Should Start Learning with Us?</h2>
+                    <h2 style="text-align: left; font-size: 30px; font-weight: bold; margin-bottom: 20px;">Why You Should Start Learning with Us?</h2>
                 <p>Join a platform that truly understands your learning needs. Our commitment to innovation ensures a unique, engaging, and personalized education experience. With tools designed to simplify complex topics and foster deep understanding, we empower learners to achieve their goals faster and more effectively. Experience the perfect blend of technology and expertise to take your learning journey to the next level. Let’s make your success our mission!</p>
             </div>
         </div>
