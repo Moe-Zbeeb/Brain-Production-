@@ -263,6 +263,7 @@ class LangchainHandler:
             logging.error(f"Error converting text to speech with gTTS: {e}")
             return ""
 
+
 # Initialize LangchainHandler
 langchain_handler = LangchainHandler(llm=llm)
 
@@ -629,7 +630,7 @@ def login_page():
             }
             h2 {
                 font-size: 28px;
-                color: #0C013E;
+                color: #CCCCCC;
                 margin-bottom: 20px;
                 text-align: center;
             }
@@ -793,9 +794,6 @@ def professor_page():
         create_course_section()
     elif st.session_state.selected_tab == "Manage Courses":
         manage_courses_section()
-
-
-
 
 def home_page():
     inject_css()
@@ -1202,71 +1200,91 @@ def home_page():
     """, unsafe_allow_html=True)
     inject_css2()
 
-
 def student_page():
     inject_css()
+    # The dark theme styling you previously used
     st.markdown("""
-        <style>
-        .dashboard-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            text-align: center;
-            color: #4A90E2;
-        }
+<style>
+.stApp {
+    background-color: #121212;
+    color: white;
+}
+[data-testid="stExpander"] .streamlit-expanderHeader {
+    background-color: #333333;
+    color: white !important;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 10px;
+}
+.course-card {
+    background-color: #1E1E1E;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    margin-bottom: 20px;
+    transition: transform 0.2s ease-in-out;
+}
+.course-card:hover {
+    transform: scale(1.03);
+    background-color: #292929;
+}
+.view-details-button {
+    background-color: #4A90E2;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.view-details-button:hover {
+    background-color: #357ABD;
+}
+.hidden-details {
+    background-color: #2A2A2A;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+h1, h2, h3, h4, h5, h6 {
+    color: #CCCCCC;
+}
+.alert-box {
+    background-color: #333333;
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #1E1E1E;
+}
+::-webkit-scrollbar-thumb {
+    background: #4A90E2;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #357ABD;
+}
+</style>
+""", unsafe_allow_html=True)
 
-        .divider {
-            border-top: 2px solid #E6E6E6;
-            margin: 20px 0;
-        }
-
-        .expander-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .section-header {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin: 20px 0;
-            color: #4A90E2;
-        }
-
-        .feature-box {
-            background-color: #F9F9F9;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .form-button {
-            background-color: #4A90E2;
-            color: white;
-            font-weight: bold;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .form-button:hover {
-            background-color: #357ABD;
-        }
-
-        .info-message {
-            font-size: 1rem;
-            color: #FF4B4B;
-            font-weight: bold;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # Dashboard Title
-    st.markdown("<h1 style='color: #003366;'> Student Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='dashboard-title'>Student Dashboard</h1>", unsafe_allow_html=True)
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-    # ------------------ Available Courses Section ------------------
+    # Add a button to open the chat popup
+    if st.button("Open Q&A Chat"):
+        st.session_state.show_chat_popup = True
+
+    # Available Courses Section
     st.markdown("<h2 class='section-header' style='color: #003366;'>Available Courses</h2>", unsafe_allow_html=True)
     courses = session_db.query(Course).all()
 
@@ -1274,85 +1292,194 @@ def student_page():
         st.info("No courses available at the moment.")
         return
 
+    if "opened_course_id" not in st.session_state:
+        st.session_state.opened_course_id = None
+
     for course in courses:
-        
-        with st.expander(f"📘 {course.name}", expanded=False):
-            # Display Files Section
-            st.markdown("<h3 class='expander-title'>📁 Course Material</h3>", unsafe_allow_html=True)
-            if session_db.query(CourseFile).filter_by(course_id=course.id).count() > 0:
-                for file in course.files:
-                    file_bytes = base64.b64encode(file.data).decode()
-                    href = f'<a href="data:file/octet-stream;base64,{file_bytes}" download="{file.filename}" class="form-button">{file.filename}</a>'
-                    st.markdown(href, unsafe_allow_html=True)
-            else:
-                st.markdown("<p class='info-message'>No material uploaded for this course.</p>", unsafe_allow_html=True)
+        with st.container():
+            # Display Course Card
+            st.markdown(f"""
+            <div class='course-card'>
+                <h3>{course.name}</h3>
+                <p><strong>Professor:</strong> {course.professor_id}</p>
+                <button class="view-details-button" onclick="document.getElementById('details-{course.id}').style.display='block';">
+                    View Details
+                </button>
+            </div>
+            """, unsafe_allow_html=True)
 
-            # Generate Podcast Feature
-            st.markdown("<div class='feature-box'>", unsafe_allow_html=True)
-            generate_podcast_for_course(course, OPENAI_API_KEY)
-            st.markdown("</div>", unsafe_allow_html=True)
+            # Show Details Section Dynamically
+            if st.button(f"View Details for {course.name}", key=f"view_details_{course.id}"):
+                st.session_state.opened_course_id = course.id if st.session_state.opened_course_id != course.id else None
 
-            # Chat with Course Material
-            st.markdown("<h3 class='expander-title'>💬 Chat with Course Material</h3>", unsafe_allow_html=True)
-            with st.form(key=f'chat_form_{course.id}', clear_on_submit=True):
-                user_question = st.text_input(f"Ask a question about {course.name}:", key=f"question_input_{course.id}")
-                submit = st.form_submit_button("Send", use_container_width=True)
-                if submit:
-                    if user_question.strip():
-                        with st.spinner("Processing your question..."):
-                            try:
-                                response = chat_with_documents(course, user_question)
-                                st.success("Response:")
-                                st.markdown(f"<p style='color: black;'>{response}</p>", unsafe_allow_html=True)
-                            except Exception as e:
-                                st.error(f"An error occurred: {e}")
-                    else:
-                        st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
+            if st.session_state.opened_course_id == course.id:
+                with st.container():
+                    st.markdown(f"<div id='details-{course.id}' class='hidden-details'>", unsafe_allow_html=True)
+                    st.markdown(f"<h3>Details for {course.name}</h3>", unsafe_allow_html=True)
 
-            # Study with Flashcards
-            st.markdown("<h3 class='expander-title'>📚 Study with Flashcards</h3>", unsafe_allow_html=True)
-            with st.form(key=f'flashcards_form_{course.id}', clear_on_submit=True):
-                submit = st.form_submit_button("Generate Flashcards", use_container_width=True)
-                if submit:
-                    with st.spinner("Generating flashcards..."):
-                        try:
-                            flashcards = generate_flashcards_for_course(course)
-                            st.success("🃏 Here are your flashcards:")
-                            st.write(flashcards)
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
+                    # Podcast Feature
+                    generate_podcast_for_course(course, OPENAI_API_KEY)
 
-            # Assess Your Knowledge (MCQs)
-            st.markdown("<h3 class='expander-title'>📝 Assess Your Knowledge</h3>", unsafe_allow_html=True)
-            with st.form(key=f'mcq_form_{course.id}', clear_on_submit=True):
-                submit = st.form_submit_button("Generate MCQs", use_container_width=True)
-                if submit:
-                    with st.spinner("Generating MCQs..."):
-                        try:
-                            mcqs = generate_mcq_for_course(course)
-                            st.success("🔍 Multiple-Choice Questions:")
-                            st.write(mcqs)
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
+                    # Flashcards
+                    st.markdown("<h3>📚 Study with Flashcards</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'flashcards_form_{course.id}', clear_on_submit=True):
+                        submit = st.form_submit_button("Generate Flashcards", use_container_width=True)
+                        if submit:
+                            with st.spinner("Generating flashcards..."):
+                                try:
+                                    flashcards = generate_flashcards_for_course(course)
+                                    st.success("🃏 Here are your flashcards:")
+                                    st.write(flashcards)
+                                except Exception as e:
+                                    st.error(f"An error occurred: {e}")
 
-            # Summarize Course
-            st.markdown("<h3 class='expander-title'>📄 Summarize Course</h3>", unsafe_allow_html=True)
-            with st.form(key=f'summarize_form_{course.id}', clear_on_submit=True):
-                submit = st.form_submit_button("Get Summary", use_container_width=True)
-                if submit:
-                    with st.spinner("Generating summary..."):
-                        try:
-                            summary = summarize_course_documents(course)
-                            st.success("📖 Course Summary:")
-                            st.write(summary)
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
+                    # MCQs
+                    st.markdown("<h3>📝 Assess Your Knowledge</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'mcq_form_{course.id}', clear_on_submit=True):
+                        submit = st.form_submit_button("Generate MCQs", use_container_width=True)
+                        if submit:
+                            with st.spinner("Generating MCQs..."):
+                                try:
+                                    mcqs = generate_mcq_for_course(course)
+                                    st.success("🔍 Multiple-Choice Questions:")
+                                    st.write(mcqs)
+                                except Exception as e:
+                                    st.error(f"An error occurred: {e}")
+
+                    # Summarize Course
+                    st.markdown("<h3>📄 Summarize Course</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'summarize_form_{course.id}', clear_on_submit=True):
+                        submit = st.form_submit_button("Get Summary", use_container_width=True)
+                        if submit:
+                            with st.spinner("Generating summary..."):
+                                try:
+                                    summary = summarize_course_documents(course)
+                                    st.success("📖 Course Summary:")
+                                    st.write(summary)
+                                except Exception as e:
+                                    st.error(f"An error occurred: {e}")
+
+                    # Chat with Documents
+                    st.markdown("<h3>💬 Chat with Course Material</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'chat_form_{course.id}', clear_on_submit=True):
+                        user_question = st.text_input(f"Ask a question about {course.name}:", key=f"question_input_{course.id}")
+                        submit = st.form_submit_button("Send", use_container_width=True)
+                        if submit:
+                            if user_question.strip():
+                                with st.spinner("Processing your question..."):
+                                    try:
+                                        response = chat_with_documents(course, user_question)
+                                        st.success("Response:")
+                                        st.markdown(f"<p style='color: black;'>{response}</p>", unsafe_allow_html=True)
+                                    except Exception as e:
+                                        st.error(f"An error occurred: {e}")
+                            else:
+                                st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
+
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ---------------- NEW POPUP CODE START ----------------
+
+    # Initialize state variables for popup if not done
+    # (Do this in main() as well if needed, but placing here for clarity)
+    # It's best to ensure these are in the main function
+    # We'll just rely on them existing at runtime
+    # See main() for their initialization.
+
+    # Check if the popup should be displayed
+    if st.session_state.show_chat_popup:
+        # Inject custom CSS for the modal popup
+        st.markdown("""
+        <style>
+        .modal-overlay {
+            position: fixed; 
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999; 
+        }
+
+        .modal-content {
+            background: #ffffff;
+            color: #000000;
+            width: 500px;
+            max-width: 90%;
+            padding: 20px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute; 
+            top: 10px; right: 10px;
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .chat-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .user-question {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .assistant-answer {
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="modal-overlay">
+            <div class="modal-content">
+                <button class="modal-close" onclick="document.querySelector('.modal-overlay').style.display='none';">X</button>
+                <h3>Q&A Chat</h3>
+                <div class="chat-container" id="chat-history">
+        """, unsafe_allow_html=True)
+
+        # Display chat history
+        for entry in st.session_state.chat_history:
+            st.markdown(f"<div class='user-question'>User: {entry['question']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='assistant-answer'>Assistant: {entry['answer']}</div>", unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Input form for new question
+        with st.form(key='chat_form_popup', clear_on_submit=True):
+            question = st.text_input("Ask a new question:", key='chat_input_popup')
+            send = st.form_submit_button("Send")
+
+            if send and question.strip():
+                # Pick the first course or adapt logic as needed
+                courses = session_db.query(Course).all()
+                if courses:
+                    selected_course = courses[0]  # Simplified example
+                    answer = chat_with_documents(selected_course, question)
+                    st.session_state.chat_history.append({"question": question, "answer": answer})
+                    st.experimental_rerun()
+
+        # Close popup button
+        if st.button("Close"):
+            st.session_state.show_chat_popup = False
+            st.experimental_rerun()
+
+        st.markdown("</div></div>", unsafe_allow_html=True)
+    # ---------------- NEW POPUP CODE END ----------------
 
 def generate_podcast_for_course(course, openai_api_key):
     """
     Allows students to generate a podcast based on the course materials or by uploading additional PDFs.
     """
-    # Initialize session state for podcast if not already set
     podcast_audio_key = f"podcast_audio_{course.id}"
     script_key = f"script_{course.id}"
     if podcast_audio_key not in st.session_state:
@@ -1362,10 +1489,7 @@ def generate_podcast_for_course(course, openai_api_key):
 
     st.markdown("<h3 style='color: black;'>🎙 Generate Podcast for This Course</h3>", unsafe_allow_html=True)
 
-
-    # Create a container for better layout management
     with st.container():
-        # Upload PDF Files Section
         st.markdown("<h4 style='color: black;'>Upload Additional PDF File(s) for Podcast</h4>", unsafe_allow_html=True)
         uploaded_files = st.file_uploader(
             f" Upload PDF File(s) for {course.name}",
@@ -1374,11 +1498,8 @@ def generate_podcast_for_course(course, openai_api_key):
             key=f"podcast_upload_{course.id}"
         )
 
-
-        # Global CSS override for Streamlit alert messages
         st.markdown("""
 <style>
-/* Target any alert box and all elements inside it */
 div[role="alert"], 
 div[role="alert"] * {
     color: black !important;
@@ -1403,19 +1524,16 @@ div[role="alert"] * {
                     st.warning(f"No text extracted from {uploaded_file.name}.")
 
             if all_text:
-                # Generate Podcast Script
                 st.info("Generating podcast script...")
                 script = langchain_handler.generate_podcast_script(all_text, openai_api_key)
                 if script:
                     st.session_state[script_key] = script
                     st.success("Podcast script generated successfully!")
 
-                    # Display Script Optionally
                     if st.checkbox(" View Generated Script", key=f"view_script_{course.id}"):
                         st.markdown("### Generated Podcast Script")
                         st.write(script)
 
-                    # Convert Script to Audio
                     st.info("Converting script to audio...")
                     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
                     output_filename = f"podcast_{course.id}_{timestamp}.mp3"
@@ -1424,8 +1542,6 @@ div[role="alert"] * {
                     if podcast_audio_path:
                         st.session_state[podcast_audio_key] = podcast_audio_path
                         st.success("Audio podcast generated successfully!")
-
-                        # Play Audio
                         st.markdown("###  Listen to Your Podcast")
                         st.audio(podcast_audio_path, format='audio/mp3')
                     else:
@@ -1436,12 +1552,6 @@ div[role="alert"] * {
                 st.error("No text extracted from the uploaded files.")
 
 def chat_with_documents(course, question):
-    """
-    Load the course documents, create a vector store, get a response using RAG, and store the student's question.
-    :param course: Course object containing the files.
-    :param question: User's question string.
-    :return: Response string from OpenAI.
-    """
     documents = []
     for file in course.files:
         try:
@@ -1449,7 +1559,6 @@ def chat_with_documents(course, question):
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1460,12 +1569,10 @@ def chat_with_documents(course, question):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Create vector store
     vector_store = langchain_handler.create_vector_store(documents)
     if not vector_store:
         raise ValueError("Failed to create vector store from documents.")
 
-    # Get response
     response = langchain_handler.get_response(vector_store, question)
 
     # Store the student's question
@@ -1487,11 +1594,6 @@ def chat_with_documents(course, question):
     return response
 
 def summarize_course_documents(course):
-    """
-    Generate a summary of the course materials.
-    :param course: Course object containing the files.
-    :return: Summary string.
-    """
     documents = []
     for file in course.files:
         try:
@@ -1499,7 +1601,6 @@ def summarize_course_documents(course):
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1510,24 +1611,16 @@ def summarize_course_documents(course):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Generate summary using LangChainHandler
     summary = langchain_handler.summarize_documents(documents)
     return summary
 
 def generate_mcq_for_course(course):
-    """
-    Generate MCQs from the course materials.
-    :param course: Course object containing the files.
-    :return: String containing the MCQs.
-    """
     documents = []
     for file in course.files:
         try:
-            # Save the file to a temporary location
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1538,24 +1631,16 @@ def generate_mcq_for_course(course):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Generate MCQs using LangChainHandler
     mcqs = langchain_handler.generate_mcq_questions(documents)
     return mcqs
 
 def generate_flashcards_for_course(course):
-    """
-    Generate flashcards from the course materials.
-    :param course: Course object containing the files.
-    :return: String containing the flashcards.
-    """
     documents = []
     for file in course.files:
         try:
-            # Save the file to a temporary location
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1566,14 +1651,10 @@ def generate_flashcards_for_course(course):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Generate flashcards using LangChainHandler
     flashcards = langchain_handler.generate_flashcards(documents)
     return flashcards
 
 def extract_text_from_pdf(pdf_file_path_or_object):
-    """
-    Extract text from a PDF file.
-    """
     try:
         if isinstance(pdf_file_path_or_object, str):
             pdf_reader = PyPDF2.PdfReader(pdf_file_path_or_object)
@@ -1594,9 +1675,6 @@ def navigate_to(page):
     st.session_state.page = page
 
 def create_course_section():
-    """
-    Allows professors to create a new course.
-    """
     st.header("Create a New Course")
     with st.form(key='create_course_form'):
         course_name = st.text_input("Course Name")
@@ -1612,21 +1690,16 @@ def create_course_section():
             session_db.add(new_course)
             session_db.commit()
             st.success(f"Course '{course_name}' created successfully!")
-            # Update the courses list in session state
             if 'courses' in st.session_state:
                 st.session_state.courses.append(new_course)
             else:
-                st.session_state.courses = [new_course]  
+                st.session_state.courses = [new_course]
 
 def encode_video_to_base64(video_path):
     with open(video_path, "rb") as video_file:
         return base64.b64encode(video_file.read()).decode('utf-8')
 
-
 def manage_courses_section():
-    """
-    Allows professors to manage their courses, including viewing the pie chart, bar chart, word cloud, report, and deleting courses.
-    """
     st.header("Manage Your Courses")
     courses = session_db.query(Course).filter_by(professor_id=st.session_state.user.id).all()
 
@@ -1634,8 +1707,7 @@ def manage_courses_section():
         st.info("You have not created any courses yet.")
         return
 
-    # Define the path to your backend CSV file
-    csv_file_path = "ml_grouped_topics_questions.csv"  # <-- UPDATE THIS PATH
+    csv_file_path = "ml_grouped_topics_questions.csv"
     book_icon_path = "img/book.png"
     with open(book_icon_path, "rb") as img_file:
         base64_book_icon = base64.b64encode(img_file.read()).decode()
@@ -1665,7 +1737,7 @@ def manage_courses_section():
                     if submit:
                         if uploaded_files:
                             for uploaded_file in uploaded_files:
-                                if uploaded_file.size > 10 * 1024 * 1024:  # 10 MB
+                                if uploaded_file.size > 10 * 1024 * 1024:
                                     st.warning(f"File {uploaded_file.name} exceeds 10MB and was skipped.")
                                     continue
                                 existing_file = session_db.query(CourseFile).filter_by(
@@ -1681,7 +1753,6 @@ def manage_courses_section():
                                 session_db.add(course_file)
                             session_db.commit()
                             st.success("Files uploaded successfully!")
-                            # Update the course files in session state
                             course.files = session_db.query(CourseFile).filter_by(course_id=course.id).all()
                         else:
                             st.error("No files selected.")
@@ -1697,18 +1768,15 @@ def manage_courses_section():
 
         
                 st.markdown("#### Course Insights")
-                # Initialize session state variables for this course if not already set
                 if f"show_insights_{course.id}" not in st.session_state:
                     st.session_state[f"show_insights_{course.id}"] = False
 
                 if st.button("Toggle Insights", key=f"toggle_insights_{course.id}"):
                     st.session_state[f"show_insights_{course.id}"] = not st.session_state[f"show_insights_{course.id}"]
 
-                # Clear All Button
                 if st.button("Clear Insights", key=f"clear_insights_{course.id}"):
                     st.session_state[f"show_insights_{course.id}"] = False
 
-        # Display Visualizations and Report
         if st.session_state[f"show_insights_{course.id}"]:
             st.markdown("### Course Insights")
             insights_container = st.container()
@@ -1741,7 +1809,6 @@ def manage_courses_section():
                 else:
                     st.error(f"CSV file not found at the specified path: {csv_file_path}")
 
-        # Delete Course
         with st.container():
             st.markdown("### Delete Course")
             with st.form(key=f'delete_course_form_{course.id}', clear_on_submit=True):
@@ -1754,17 +1821,11 @@ def manage_courses_section():
                         session_db.delete(course)
                         session_db.commit()
                         st.success(f"Course '{course.name}' deleted successfully!")
-                        # Refresh the page or update session state as needed
                         st.experimental_rerun()
                     else:
                         st.error("Please confirm to delete the course.")
 
 def generate_pie_chart(df):
-    """
-    Generate an interactive pie chart using Plotly.
-    :param df: DataFrame containing the 'Topic' column.
-    :return: Plotly figure.
-    """
     topic_counts = df['Topic'].value_counts().reset_index()
     topic_counts.columns = ['Topic', 'Count']
     fig = px.pie(topic_counts, names='Topic', values='Count', title='Topic Distribution',
@@ -1773,11 +1834,6 @@ def generate_pie_chart(df):
     return fig
 
 def generate_bar_chart(df):
-    """
-    Generate an interactive horizontal bar chart using Plotly.
-    :param df: DataFrame containing the 'Topic' column.
-    :return: Plotly figure.
-    """
     topic_counts = df['Topic'].value_counts().sort_values(ascending=True).reset_index()
     topic_counts.columns = ['Topic', 'Count']
     fig = px.bar(topic_counts, x='Count', y='Topic', orientation='h',
@@ -1786,11 +1842,6 @@ def generate_bar_chart(df):
     return fig
 
 def generate_wordcloud(df):
-    """
-    Generate a word cloud image.
-    :param df: DataFrame containing the 'Question' column.
-    :return: Base64 encoded image string.
-    """
     text = " ".join(df['Question'].dropna().tolist())
     wordcloud = WordCloud(width=800, height=400,
                           background_color='white',
@@ -1809,28 +1860,16 @@ def generate_wordcloud(df):
     return encoded
 
 def generate_csv_report(csv_file_path):
-    """
-    Generate a detailed report from the CSV file using the LLM.
-    :param csv_file_path: Path to the CSV file.
-    :return: String containing the report.
-    """
     try:
         df = pd.read_csv(csv_file_path)
-        # Remove any PII or sensitive information if present
-        # For example, if there is a 'StudentID' column:
-        # df = df.drop(columns=['StudentID'], errors='ignore')
-        
-        # Sample data if too large
-        max_rows = 500  # Adjust based on the token limit (you may need to experiment)
+        max_rows = 500
         if len(df) > max_rows:
             df_sample = df.sample(n=max_rows, random_state=42)
         else:
             df_sample = df
 
-        # Convert the DataFrame to a CSV string
         csv_data = df_sample.to_csv(index=False)
         
-        # Define the prompt template
         template = """
         You are a data analyst assisting a professor in understanding student questions from a course.
         Based on the following CSV data, generate a detailed and rich report that includes:
@@ -1862,13 +1901,13 @@ def generate_csv_report(csv_file_path):
 
 st.markdown("""
 <style>
-/* Target the expander using the exact data-testid from the HTML */
 [data-testid="stExpander"] .streamlit-expanderHeader, 
 [data-testid="stExpander"] .streamlit-expanderHeader * {
     color: black !important;
 }
 </style>
 """, unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 h3#listen-to-your-podcast, 
@@ -1878,13 +1917,16 @@ h3#listen-to-your-podcast * {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------- Main Function ----------------------
 def main():
-
     if "user" not in st.session_state:
         st.session_state.user = None
     if "page" not in st.session_state:
         st.session_state.page = "home"
+    # Initialize popup-related states here
+    if "show_chat_popup" not in st.session_state:
+        st.session_state["show_chat_popup"] = False
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
 
     page_mapping = {
         "home": home_page,
