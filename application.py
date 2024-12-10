@@ -682,89 +682,110 @@ def login_page():
                     st.error("Invalid username or password.")
 
 def professor_page():
-    inject_css()
     if 'selected_tab' not in st.session_state:
         st.session_state.selected_tab = "Create Course" 
+
+    # Override Styles to Ensure a Full Dark Theme  
+    
     st.markdown("""
         <style>
-        /* Sidebar Styling */
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
+        /* Global Dark Background and Text */
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"] {
+            background-color: #121212 !important;
+            color: #FFFFFF !important;
         }
+
+        /* Override Streamlit's main container background */
+        [data-testid="stAppViewContainer"] > div {
+            background-color: #121212 !important;
+        }
+
+        /* Sidebar Styling */
         .sidebar {
             position: fixed; 
             top: 0;
             left: 0;
             height: 100%; 
             width: 250px; 
-            background-color: #0A043C;
-            color: white; 
+            background-color: #1E1E1E;
+            color: #FFFFFF; 
             padding: 20px;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
         }
         .sidebar-header {
-            font-size: 20px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: 600;
             text-align: center;
-            margin-bottom: 20px;
-            margin-top: 70px;
-            color: white;
+            margin-bottom: 40px;
+            margin-top: 40px;
+            color: #BB86FC;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
         }
-        .nav-button {
-            position: relative;
-            top: -300px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 90%;
-            padding: 10px;
-            border-radius: 10px;
-            background-color: white;
-            color: #0044cc; 
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            border: 1px solid #ccc;
-            cursor: pointer;
-            text-decoration: none;
+
+        /* Buttons */
+        .stButton button {
+            width: 100%;
+            background-color: #2C2C2C !important;
+            color: #FFFFFF !important;
+            border: 1px solid #3C3C3C !important;
+            border-radius: 8px !important;
+            padding: 10px !important;
+            margin-top: 10px !important;
+            font-weight: 500 !important;
+            font-size: 16px !important;
         }
-        .nav-button:hover {
-            background-color: #f0f0f0; 
+        .stButton button:hover {
+            background-color: #3C3C3C !important;
+            border-color: #BB86FC !important;
+            color: #BB86FC !important;
         }
-        .nav-button img {
-            margin-right: 10px;
-            width: 20px;
-            height: 20px;
-        }
-        .logout-section {
-            margin-top: auto;
-            text-align: center;
-            color: white;
-        }
-        .logout-section p {
-            margin: 5px 0;
+
+        /* Logged-in Section */
+        .logged-in {
             font-size: 14px;
-            color: white;
+            margin-top: 20px;
+            color: #AAAAAA;
         }
-        .logout-button {
-            padding: 10px 20px;
+
+        /* Logout Button */
+        .stButton button.logout-button {
+            background-color: #BB86FC !important;
+            color: #121212 !important;
+            border: none !important;
+            margin-top: 20px !important;
+        }
+        .stButton button.logout-button:hover {
+            background-color: #9E63E3 !important;
+        }
+
+        /* Main Title */
+        h1 {
+            color: #BB86FC;
+            font-weight: 600;
+            font-size: 32px;
+            margin-top: 20px;
+        }
+
+        /* Divider */
+        hr.custom-divider {
             border: none;
-            border-radius: 5px;
-            background-color: white;
-            color: #0044cc;
-            font-weight: bold;
-            cursor: pointer;
+            border-top: 2px solid #333;
+            margin: 20px 0;
         }
-        .logout-button:hover {
-            background-color: #f0f0f0;
+
+        /* Main content spacing */
+        .main-content {
+            margin-left: 270px; 
+            padding: 20px;
         }
-    </style>
+        </style>
     """, unsafe_allow_html=True)
 
-    # Title and Content Divider
-    st.markdown("<h1 style='color: #003366;'> Professor Dashboard</h1>", unsafe_allow_html=True)
-    st.markdown("<div style='border-top: 2px solid #E6E6E6; margin: 20px 0;'></div>", unsafe_allow_html=True)
+    # Main Title and Divider
+    st.markdown("<div class='main-content'>", unsafe_allow_html=True)
+    st.markdown("<h1>Professor Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<hr class='custom-divider' />", unsafe_allow_html=True)
 
     # Sidebar Design
     with st.sidebar:
@@ -772,10 +793,10 @@ def professor_page():
         st.markdown("<div class='sidebar-header'>Navigation</div>", unsafe_allow_html=True)
 
         # Dynamic Buttons for Navigation
-        if st.button(" Create Course", key="create_course", use_container_width=True):
+        if st.button("Create Course", key="create_course"):
             st.session_state.selected_tab = "Create Course"
 
-        if st.button(" Manage Courses", key="manage_courses", use_container_width=True):
+        if st.button("Manage Courses", key="manage_courses"):
             st.session_state.selected_tab = "Manage Courses"
 
         # Logged-In User Info
@@ -783,7 +804,7 @@ def professor_page():
         st.markdown(f"<div class='logged-in'>{st.session_state.user.username}</div>", unsafe_allow_html=True)
 
         # Logout Button
-        if st.button("Logout", key="logout"):
+        if st.button("Logout", key="logout", help="Logout from your account", args=None, kwargs=None):
             st.session_state.user = None
             st.session_state.page = "home"
 
@@ -794,6 +815,9 @@ def professor_page():
         create_course_section()
     elif st.session_state.selected_tab == "Manage Courses":
         manage_courses_section()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 def home_page():
     inject_css()
