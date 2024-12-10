@@ -484,7 +484,7 @@ def signup_page():
              else:
                  # Add user to the database
                  new_user = User(username=username.strip(), role=role)
-                 new_user.set_password(password)  # Assuming your User model has a `set_password` method
+                 new_user.set_password(password)  # Assuming your User model has a set_password method
                  session_db.add(new_user)
                  session_db.commit()
                  st.markdown('<div class="success-message">Account created successfully! You can now log in.</div>', unsafe_allow_html=True)
@@ -1277,7 +1277,7 @@ h1, h2, h3, h4, h5, h6 {
 </style>
 """, unsafe_allow_html=True)
 
-    st.markdown("<h1 class='dashboard-title'>Student Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='dashboard-title'>My Cources</h1>", unsafe_allow_html=True)
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
     # Add a button to open the chat popup
@@ -1303,7 +1303,7 @@ h1, h2, h3, h4, h5, h6 {
                 <h3>{course.name}</h3>
                 <p><strong>Professor:</strong> {course.professor_id}</p>
                 <button class="view-details-button" onclick="document.getElementById('details-{course.id}').style.display='block';">
-                    View Details
+                    View Services
                 </button>
             </div>
             """, unsafe_allow_html=True)
@@ -1963,4 +1963,4 @@ def main():
         page_mapping.get(st.session_state.page, home_page)()
 
 if __name__ == "__main__":
-    main()
+    main() 
