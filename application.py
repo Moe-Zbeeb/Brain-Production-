@@ -165,7 +165,6 @@ try:
         model="gpt-4",
         temperature=0.2,
         openai_api_key=OPENAI_API_KEY,
-        request_timeout=60  # seconds
     )
     logging.info("Successfully connected to OpenAI LLM.")
 except Exception as e:
@@ -1610,101 +1609,140 @@ def home_page():
 #         st.markdown("</div></div>", unsafe_allow_html=True)
 #     # ---------------- NEW POPUP CODE END ---------------- 
 
+
+
 def student_page():
-    inject_css()
-    # Updated styling to include .chat-response
+    # Apply a dark theme similar to the professor page
     st.markdown("""
     <style>
-    .stApp {
-        background-color: #121212;
-        color: white;
+    /* Global Dark Background and Text */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"] {
+        background-color: #121212 !important;
+        color: #FFFFFF !important;
     }
-    [data-testid="stExpander"] .streamlit-expanderHeader {
-        background-color: #333333;
-        color: white !important;
-        font-size: 16px;
-        font-weight: bold;
-        padding: 10px;
+
+    [data-testid="stAppViewContainer"] > div {
+        background-color: #121212 !important;
     }
-    .course-card {
-        background-color: #1E1E1E;
-        color: white;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-        margin-bottom: 20px;
-        transition: transform 0.2s ease-in-out, background-color 0.3s ease;
-    }
-    .course-card:hover {
-        transform: scale(1.03);
-        background-color: #292929;
-    }
-    .hidden-details {
-        background-color: #2A2A2A;
-        padding: 20px;
-        border-radius: 10px;
-        margin-top: 10px;
-    }
+
+    /* Styling headings and dividers */
     h1, h2, h3, h4, h5, h6 {
+        color: #BB86FC;
+        font-family: "Arial", sans-serif;
+    }
+    h1 {
+        font-size: 32px;
+        font-weight: 600;
+        margin-top: 20px;
+    }
+    h2 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    h3 {
+        font-size: 20px;
+        font-weight: 500;
+        margin-bottom: 10px;
         color: #CCCCCC;
     }
-    .flashcard, .mcq, .summary {
+
+    /* Cards and Containers */
+    .course-card, .hidden-details, .flashcard, .mcq, .summary, .chat-response {
         background-color: #1E1E1E;
-        border-left: 5px solid #4A90E2;
+        border-radius: 10px;
         padding: 15px;
         margin-bottom: 20px;
-        border-radius: 5px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        transition: background-color 0.3s ease, transform 0.2s ease-in-out;
     }
-    .flashcard h4, .mcq h4, .summary h4 {
+    .course-card:hover, .flashcard:hover, .mcq:hover, .summary:hover, .chat-response:hover {
+        background-color: #292929;
+        transform: scale(1.02);
+    }
+
+    /* Text and Links */
+    p {
+        color: #CCCCCC;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    a {
+        color: #BB86FC;
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+
+    /* Buttons */
+    .stButton button {
+        background-color: #2C2C2C !important;
+        color: #FFFFFF !important;
+        border: 1px solid #3C3C3C !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        margin-top: 10px !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+    .stButton button:hover {
+        background-color: #3C3C3C !important;
+        border-color: #BB86FC !important;
+        color: #BB86FC !important;
+    }
+    .view-details-button {
+        background-color: #4A90E2 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        padding: 8px 16px !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        border-radius: 5px !important;
+        cursor: pointer !important;
+        transition: background-color 0.3s ease !important;
+        margin-top: 10px !important;
+    }
+    .view-details-button:hover {
+        background-color: #357ABD !important;
+    }
+
+    /* Response Containers */
+    .flashcard, .mcq, .summary, .chat-response {
+        border-left: 5px solid #4A90E2;
+    }
+    .flashcard h4, .mcq h4, .summary h4, .chat-response p {
         margin-bottom: 10px;
         color: #4A90E2;
     }
-    .view-details-button {
-        background-color: #4A90E2;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        font-weight: bold;
-        font-size: 14px;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-        margin-top: 10px;
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
     }
-    .view-details-button:hover {
-        background-color: #357ABD;
+    ::-webkit-scrollbar-track {
+        background: #1E1E1E;
     }
-    .info-message {
-        color: #cccccc;
+    ::-webkit-scrollbar-thumb {
+        background: #4A90E2;
+        border-radius: 10px;
     }
-    /* New styling for chat responses */
-    .chat-response {
-        background-color: #1E1E1E;
-        border-left: 5px solid #00b0ff;
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 5px;
-        transition: background-color 0.2s ease;
-    }
-    .chat-response:hover {
-        background-color: #2a2a2a;
-    }
-    .chat-response p {
-        margin: 0;
-        color: #cccccc;
-        line-height: 1.6;
-        font-size: 14px;
+    ::-webkit-scrollbar-thumb:hover {
+        background: #357ABD;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 class='dashboard-title'>My Courses</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+        .dashboard-title {
+            color: white;
+        }
+        </style>
+        <h1 class='dashboard-title'>My Courses</h1>
+    """, unsafe_allow_html=True)
 
-    if st.button("Open Q&A Chat"):
-        st.session_state.show_chat_popup = True
-
-    st.markdown("<h2 class='section-header' style='color: #003366;'>Available Courses</h2>", unsafe_allow_html=True)
     courses = session_db.query(Course).all()
 
     if not courses:
@@ -1719,7 +1757,7 @@ def student_page():
             # Display Course Card
             st.markdown(f"""
             <div class='course-card'>
-                <h3>{course.name}</h3>
+                <h3 style="color: #BB86FC;">{course.name}</h3>
                 <p><strong>Professor:</strong> {course.professor_id}</p>
             </div>
             """, unsafe_allow_html=True)
@@ -1762,12 +1800,10 @@ def student_page():
                                 try:
                                     mcqs = generate_mcq_for_course(course)
                                     st.success("🔍 Multiple-Choice Questions:")
-                                    mcq_html = ""
                                     mcq_list = mcqs.strip().split('\n\n')
                                     for mcq_item in mcq_list:
                                         if mcq_item.strip():
-                                            mcq_html += f"<div class='mcq'><strong>{mcq_item.replace('\n', '<br>')}</strong></div>"
-                                    st.markdown(mcq_html, unsafe_allow_html=True)
+                                            st.markdown(f"<div class='mcq'><strong>{mcq_item.replace('\n', '<br>')}</strong></div>", unsafe_allow_html=True)
                                 except Exception as e:
                                     st.error(f"An error occurred: {e}")
 
@@ -1795,7 +1831,6 @@ def student_page():
                                     try:
                                         response = chat_with_documents(course, user_question)
                                         st.success("Response:")
-                                        # Render response in a `.chat-response` container
                                         st.markdown(f"<div class='chat-response'><p>{response}</p></div>", unsafe_allow_html=True)
                                     except Exception as e:
                                         st.error(f"An error occurred: {e}")
@@ -1804,11 +1839,7 @@ def student_page():
 
                     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---------------- NEW POPUP CODE START ----------------
-
-    # (Popup code remains unchanged)
-
-    # ---------------- NEW POPUP CODE END ----------------
+    # Popup code remains unchanged if present in the main code
 
 
 def generate_podcast_for_course(course, openai_api_key):
@@ -1822,10 +1853,10 @@ def generate_podcast_for_course(course, openai_api_key):
     if script_key not in st.session_state:
         st.session_state[script_key] = ""
 
-    st.markdown("<h3 style='color: black;'>🎙 Generate Podcast for This Course</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: White;'>🎙 Generate Podcast for This Course</h3>", unsafe_allow_html=True)
 
     with st.container():
-        st.markdown("<h4 style='color: black;'>Upload Additional PDF File(s) for Podcast</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: White;'>Upload Additional PDF File(s) for Podcast</h4>", unsafe_allow_html=True)
         uploaded_files = st.file_uploader(
             f" Upload PDF File(s) for {course.name}",
             accept_multiple_files=True,
