@@ -30,6 +30,7 @@ class Course(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     professor_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    youtube_link = Column(String, nullable=True)  # New column for YouTube links
     
     # Relationships
     professor = relationship("User", back_populates="courses")
@@ -43,8 +44,6 @@ class CourseFile(Base):
     filename = Column(String, nullable=False)
     data = Column(LargeBinary, nullable=False)
     course_id = Column(Integer, ForeignKey('courses.id'), nullable=False)
-    
-    # Relationships
     course = relationship("Course", back_populates="files")
 
 class StudentQuestion(Base):

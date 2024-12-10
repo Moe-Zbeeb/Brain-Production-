@@ -29,6 +29,116 @@ from io import BytesIO
 from wordcloud import WordCloud, STOPWORDS
 from application1 import about_page, contact_page, inject_css, inject_css2, set_overlay_bg_image, encode_image_to_base64
 from PIL import Image
+# transcription.py
+import os
+import re
+import subprocess
+import assemblyai as aai
+
+aai.settings.api_key = "76e966abc56746f88f365735a37c766f"  # Replace with your API key
+
+def validate_youtube_url(url):
+    """Validate if a URL is a valid YouTube video link."""
+    pattern = r"^(https?://)?(www\.)?(youtube\.com|youtu\.?be)/.+$"
+    return re.match(pattern, url) is not None
+
+def download_audio_yt_dlp(video_url, output_dir):
+    """Download audio using yt-dlp with a custom user agent."""
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, "%(title)s.%(ext)s")
+        command = [
+            "yt-dlp",
+            "-x", "--audio-format", "mp3",
+            "--user-agent", "Mozilla/5.0",
+            "--output", output_file,
+            video_url
+        ]
+        subprocess.run(command, check=True)
+        return True
+    except Exception as e:
+        print(f"Error downloading audio for {video_url}: {e}")
+        return False
+
+def process_youtube_links(youtube_links, course, output_dir="transcripts"):
+    """Download audio from YouTube links, transcribe them, save transcripts, and add them to the vector DB."""
+    os.makedirs(output_dir, exist_ok=True)
+    transcriber = aai.Transcriber()
+    transcripts = {}
+
+    for link in youtube_links:
+        if not validate_youtube_url(link):
+            print(f"Invalid YouTube URL: {link}")
+            continue
+
+        print(f"Processing: {link}")
+        if not download_audio_yt_dlp(link, output_dir):
+            continue
+        
+        try:
+            # Find the downloaded MP3 file (assuming one link at a time)
+            audio_file = next((f for f in os.listdir(output_dir) if f.endswith(".mp3")), None)
+            if audio_file:
+                audio_path = os.path.join(output_dir, audio_file)
+                config = aai.TranscriptionConfig(speaker_labels=True)
+                transcript = transcriber.transcribe(audio_path, config)
+                
+                # Save transcript to a text file
+                transcript_file = os.path.join(output_dir, f"{audio_file}_transcript.txt")
+                with open(transcript_file, "w") as f:
+                    for utterance in transcript.utterances:
+                        f.write(f"Speaker {utterance.speaker}: {utterance.text}\n")
+                
+                print(f"Transcript saved: {transcript_file}")
+                
+                # Store transcript in dictionary
+                transcript_text = "\n".join(
+                    [f"Speaker {utterance.speaker}: {utterance.text}" for utterance in transcript.utterances]
+                )
+                transcripts[audio_file] = transcript_text
+                
+                # Save transcript to database
+                transcript_filename = f"{os.path.splitext(audio_file)[0]}_transcript.txt"
+                existing_file = session_db.query(CourseFile).filter_by(
+                    course_id=course.id, filename=transcript_filename
+                ).first()
+
+                if existing_file:
+                    print(f"Transcript file {transcript_filename} already exists, skipping.")
+                    continue
+
+                course_file = CourseFile(
+                    filename=transcript_filename,
+                    data=transcript_text.encode('utf-8'),
+                    course_id=course.id
+                )
+                session_db.add(course_file)
+                session_db.commit()
+                print(f"Transcript added to course {course.name} as course file.")
+
+                # Add transcript to vector database
+                docs = langchain_handler.load_document(transcript_file)
+                if docs:
+                    # Fetch existing vector store or create a new one
+                    vector_store = langchain_handler.create_vector_store(docs)
+                    if not vector_store:
+                        print(f"Failed to create vector store for {transcript_filename}.")
+                        continue
+                    
+                    # Check if course already has a vector store
+                    existing_vector_store = session_db.query(CourseFile).filter_by(course_id=course.id).first()
+                    if existing_vector_store:
+                        # Merge with existing vector store
+                        vector_store.merge(existing_vector_store)
+                        print(f"Transcript vectorized and merged into existing vector store for course {course.name}.")
+                    else:
+                        print(f"Transcript vectorized and added as new vector store for course {course.name}.")
+            else:
+                print(f"No audio file found for {link}.")
+        except Exception as e:
+            print(f"Error processing {link}: {e}")
+
+    return transcripts
 
 # ---------------------- Configuration ----------------------
 
@@ -1924,6 +2034,7 @@ def encode_video_to_base64(video_path):
     with open(video_path, "rb") as video_file:
         return base64.b64encode(video_file.read()).decode('utf-8')
 
+
 def manage_courses_section():
     st.header("Manage Your Courses")
     courses = session_db.query(Course).filter_by(professor_id=st.session_state.user.id).all()
@@ -1932,123 +2043,114 @@ def manage_courses_section():
         st.info("You have not created any courses yet.")
         return
 
-    csv_file_path = "ml_grouped_topics_questions.csv"
-    book_icon_path = "img/book.png"
-    with open(book_icon_path, "rb") as img_file:
-        base64_book_icon = base64.b64encode(img_file.read()).decode()
-
     for course in courses:
-        st.markdown(
-    f"""
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="data:image/png;base64,{base64_book_icon}" alt="Book Icon" style="width: 24px; height: 24px;">
-        <span style="font-size: 20px; font-weight: bold; color: black !important;">{course.name}</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        st.markdown(f"### {course.name}")
+        
+        # Section to add or update YouTube links
+        with st.expander(f"Add/Update YouTube Link for {course.name}", expanded=False):
+            current_link = course.youtube_link or "No link provided yet."
+            st.markdown(f"**Current YouTube Link:** {current_link}")
+            
+            with st.form(key=f"youtube_form_{course.id}"):
+                youtube_link = st.text_input("Enter YouTube Link", value=course.youtube_link or "")
+                submit_link = st.form_submit_button("Save YouTube Link")
+                if submit_link:
+                    if youtube_link.strip():
+                        course.youtube_link = youtube_link.strip()
+                        session_db.commit()
+                        st.success("YouTube link updated successfully!")
 
-        with st.container():
-            col1, col2 = st.columns([1, 1])
+                        # Process transcripts and add them to vector DB
+                        st.info("Processing YouTube link for transcripts...")
+                        transcripts = process_youtube_links([youtube_link], course, output_dir="transcripts")
 
-            with col1:
-                st.markdown("#### Upload Course Materials")
-                with st.form(key=f'upload_form_{course.id}', clear_on_submit=True):
-                    uploaded_files = st.file_uploader(
-                        "Upload files (PDF or TXT)", accept_multiple_files=True,
-                        key=f"upload_{course.id}"
-                    )
-                    submit = st.form_submit_button("Upload Files")
-                    if submit:
-                        if uploaded_files:
-                            for uploaded_file in uploaded_files:
-                                if uploaded_file.size > 10 * 1024 * 1024:
-                                    st.warning(f"File {uploaded_file.name} exceeds 10MB and was skipped.")
-                                    continue
+                        if transcripts:
+                            # Save each transcript as a CourseFile and add to vector DB
+                            for audio_file, transcript_text in transcripts.items():
+                                transcript_filename = f"{os.path.splitext(audio_file)[0]}_transcript.txt"
+                                
+                                # Check if a transcript file with the same name already exists
                                 existing_file = session_db.query(CourseFile).filter_by(
-                                    course_id=course.id, filename=uploaded_file.name).first()
+                                    course_id=course.id, filename=transcript_filename
+                                ).first()
+
                                 if existing_file:
-                                    st.warning(f"File {uploaded_file.name} already exists and was skipped.")
+                                    st.warning(f"Transcript file {transcript_filename} already exists, skipping.")
                                     continue
+
+                                # Save transcript to database
                                 course_file = CourseFile(
-                                    filename=uploaded_file.name,
-                                    data=uploaded_file.read(),
+                                    filename=transcript_filename,
+                                    data=transcript_text.encode('utf-8'),
                                     course_id=course.id
                                 )
                                 session_db.add(course_file)
+                                
+                                # Add transcript to the vector DB
+                                docs = langchain_handler.load_document(transcript_filename)
+                                if docs:
+                                    vector_store = langchain_handler.create_vector_store(docs)
+                                    if vector_store:
+                                        st.success(f"Transcript vectorized and added to the course vector DB.")
+                                    else:
+                                        st.error(f"Failed to vectorize transcript: {transcript_filename}")
                             session_db.commit()
-                            st.success("Files uploaded successfully!")
-                            course.files = session_db.query(CourseFile).filter_by(course_id=course.id).all()
+                            st.success("Transcripts added as course materials!")
                         else:
-                            st.error("No files selected.")
-
-                st.markdown("#### Current Files")
-                if session_db.query(CourseFile).filter_by(course_id=course.id).count() > 0:
-                    for file in course.files:
-                        file_bytes = base64.b64encode(file.data).decode()
-                        href = f'<a href="data:file/octet-stream;base64,{file_bytes}" download="{file.filename}">{file.filename}</a>'
-                        st.markdown(href, unsafe_allow_html=True)
-                else:
-                    st.info("No files uploaded for this course.")
-
-        
-                st.markdown("#### Course Insights")
-                if f"show_insights_{course.id}" not in st.session_state:
-                    st.session_state[f"show_insights_{course.id}"] = False
-
-                if st.button("Toggle Insights", key=f"toggle_insights_{course.id}"):
-                    st.session_state[f"show_insights_{course.id}"] = not st.session_state[f"show_insights_{course.id}"]
-
-                if st.button("Clear Insights", key=f"clear_insights_{course.id}"):
-                    st.session_state[f"show_insights_{course.id}"] = False
-
-        if st.session_state[f"show_insights_{course.id}"]:
-            st.markdown("### Course Insights")
-            insights_container = st.container()
-            with insights_container:
-                if os.path.exists(csv_file_path):
-                    df = pd.read_csv(csv_file_path)
-                    if 'Topic' not in df.columns or 'Question' not in df.columns:
-                        st.error("CSV must have 'Topic' and 'Question' columns.")
-                        continue
-
-                    tabs = st.tabs(["📊 Pie Chart", "📈 Bar Chart", "☁️ Word Cloud", "📄 Report"])
-                    with tabs[0]:
-                        pie_fig = generate_pie_chart(df)
-                        st.plotly_chart(pie_fig, use_container_width=True)
-
-                    with tabs[1]:
-                        bar_fig = generate_bar_chart(df)
-                        st.plotly_chart(bar_fig, use_container_width=True)
-
-                    with tabs[2]:
-                        wordcloud_img = generate_wordcloud(df)
-                        st.image(f"data:image/png;base64,{wordcloud_img}", use_container_width=True)
-
-                    with tabs[3]:
-                        report = generate_csv_report(csv_file_path)
-                        if report.startswith("Error generating report"):
-                            st.error(report)
-                        else:
-                            st.markdown(report, unsafe_allow_html=True)
-                else:
-                    st.error(f"CSV file not found at the specified path: {csv_file_path}")
-
-        with st.container():
-            st.markdown("### Delete Course")
-            with st.form(key=f'delete_course_form_{course.id}', clear_on_submit=True):
-                confirm = st.checkbox("Are you sure you want to delete this course? This action cannot be undone.", key=f"confirm_delete_{course.id}")
-                submit = st.form_submit_button("Delete Course")
-                if submit:
-                    if confirm:
-                        for file in course.files:
-                            session_db.delete(file)
-                        session_db.delete(course)
-                        session_db.commit()
-                        st.success(f"Course '{course.name}' deleted successfully!")
-                        st.experimental_rerun()
+                            st.warning("No transcripts were generated. Please ensure the YouTube link is correct and try again.")
+                        
                     else:
-                        st.error("Please confirm to delete the course.")
+                        st.error("YouTube link cannot be empty.")
+
+        # Section to upload course materials
+        with st.expander(f"Upload Course Materials for {course.name}", expanded=False):
+            with st.form(key=f'upload_form_{course.id}', clear_on_submit=True):
+                uploaded_files = st.file_uploader(
+                    "Upload files (PDF or TXT)", accept_multiple_files=True, key=f"upload_{course.id}"
+                )
+                submit = st.form_submit_button("Upload Files")
+                if submit:
+                    if uploaded_files:
+                        for uploaded_file in uploaded_files:
+                            if uploaded_file.size > 10 * 1024 * 1024:
+                                st.warning(f"File {uploaded_file.name} exceeds 10MB and was skipped.")
+                                continue
+                            existing_file = session_db.query(CourseFile).filter_by(
+                                course_id=course.id, filename=uploaded_file.name).first()
+                            if existing_file:
+                                st.warning(f"File {uploaded_file.name} already exists and was skipped.")
+                                continue
+                            course_file = CourseFile(
+                                filename=uploaded_file.name,
+                                data=uploaded_file.read(),
+                                course_id=course.id
+                            )
+                            session_db.add(course_file)
+                        session_db.commit()
+                        st.success("Files uploaded successfully!")
+                        course.files = session_db.query(CourseFile).filter_by(course_id=course.id).all()
+                    else:
+                        st.error("No files selected.")
+
+        # Section to delete course
+        st.markdown("### Delete Course")
+        with st.form(key=f'delete_course_form_{course.id}', clear_on_submit=True):
+            confirm = st.checkbox(
+                "Are you sure you want to delete this course? This action cannot be undone.",
+                key=f"confirm_delete_{course.id}"
+            )
+            submit = st.form_submit_button("Delete Course")
+            if submit:
+                if confirm:
+                    for file in course.files:
+                        session_db.delete(file)
+                    session_db.delete(course)
+                    session_db.commit()
+                    st.success(f"Course '{course.name}' deleted successfully!")
+                    st.experimental_rerun()
+                else:
+                    st.error("Please confirm to delete the course.")
+
 
 def generate_pie_chart(df):
     topic_counts = df['Topic'].value_counts().reset_index()

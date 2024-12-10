@@ -31,3 +31,4 @@ def search_youtube(keyword, num_results=10):
 links = search_youtube("mozart", 10)
 for idx, link in enumerate(links, 1):
     print(f"Video {idx}: {link}")
+    
