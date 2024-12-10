@@ -1200,6 +1200,283 @@ def home_page():
     """, unsafe_allow_html=True)
     inject_css2()
 
+# def student_page():
+#     inject_css()
+#     # The dark theme styling you previously used
+#     st.markdown("""
+# <style>
+# .stApp {
+#     background-color: #121212;
+#     color: white;
+# }
+# [data-testid="stExpander"] .streamlit-expanderHeader {
+#     background-color: #333333;
+#     color: white !important;
+#     font-size: 16px;
+#     font-weight: bold;
+#     padding: 10px;
+# }
+# .course-card {
+#     background-color: #1E1E1E;
+#     color: white;
+#     padding: 15px;
+#     border-radius: 10px;
+#     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+#     margin-bottom: 20px;
+#     transition: transform 0.2s ease-in-out;
+# }
+# .course-card:hover {
+#     transform: scale(1.03);
+#     background-color: #292929;
+# }
+# .view-details-button {
+#     background-color: #4A90E2;
+#     color: white;
+#     border: none;
+#     padding: 10px 20px;
+#     font-weight: bold;
+#     font-size: 14px;
+#     border-radius: 5px;
+#     cursor: pointer;
+#     transition: background-color 0.3s ease;
+# }
+# .view-details-button:hover {
+#     background-color: #357ABD;
+# }
+# .hidden-details {
+#     background-color: #2A2A2A;
+#     padding: 20px;
+#     border-radius: 10px;
+#     margin-top: 10px;
+# }
+# h1, h2, h3, h4, h5, h6 {
+#     color: #CCCCCC;
+# }
+# .alert-box {
+#     background-color: #333333;
+#     color: white;
+#     padding: 15px;
+#     border-radius: 5px;
+#     font-weight: bold;
+#     font-size: 14px;
+#     margin-bottom: 10px;
+# }
+# ::-webkit-scrollbar {
+#     width: 8px;
+# }
+# ::-webkit-scrollbar-track {
+#     background: #1E1E1E;
+# }
+# ::-webkit-scrollbar-thumb {
+#     background: #4A90E2;
+#     border-radius: 10px;
+# }
+# ::-webkit-scrollbar-thumb:hover {
+#     background: #357ABD;
+# }
+# </style>
+# """, unsafe_allow_html=True)
+
+#     st.markdown("<h1 class='dashboard-title'>My Cources</h1>", unsafe_allow_html=True)
+#     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
+#     # Add a button to open the chat popup
+#     if st.button("Open Q&A Chat"):
+#         st.session_state.show_chat_popup = True
+
+#     # Available Courses Section
+#     st.markdown("<h2 class='section-header' style='color: #003366;'>Available Courses</h2>", unsafe_allow_html=True)
+#     courses = session_db.query(Course).all()
+
+#     if not courses:
+#         st.info("No courses available at the moment.")
+#         return
+
+#     if "opened_course_id" not in st.session_state:
+#         st.session_state.opened_course_id = None
+
+#     for course in courses:
+#         with st.container():
+#             # Display Course Card
+#             st.markdown(f"""
+#             <div class='course-card'>
+#                 <h3>{course.name}</h3>
+#                 <p><strong>Professor:</strong> {course.professor_id}</p>
+#                 <button class="view-details-button" onclick="document.getElementById('details-{course.id}').style.display='block';">
+#                     View Courses 
+#                 </button>
+#             </div>
+#             """, unsafe_allow_html=True)
+
+#             # Show Details Section Dynamically
+#             if st.button(f"View Details for {course.name}", key=f"view_details_{course.id}"):
+#                 st.session_state.opened_course_id = course.id if st.session_state.opened_course_id != course.id else None
+
+#             if st.session_state.opened_course_id == course.id:
+#                 with st.container():
+#                     st.markdown(f"<div id='details-{course.id}' class='hidden-details'>", unsafe_allow_html=True)
+#                     st.markdown(f"<h3>Details for {course.name}</h3>", unsafe_allow_html=True)
+
+#                     # Podcast Feature
+#                     generate_podcast_for_course(course, OPENAI_API_KEY)
+
+#                     # Flashcards
+#                     st.markdown("<h3>📚 Study with Flashcards</h3>", unsafe_allow_html=True)
+#                     with st.form(key=f'flashcards_form_{course.id}', clear_on_submit=True):
+#                         submit = st.form_submit_button("Generate Flashcards", use_container_width=True)
+#                         if submit:
+#                             with st.spinner("Generating flashcards..."):
+#                                 try:
+#                                     flashcards = generate_flashcards_for_course(course)
+#                                     st.success("🃏 Here are your flashcards:")
+#                                     st.write(flashcards)
+#                                 except Exception as e:
+#                                     st.error(f"An error occurred: {e}")
+
+#                     # MCQs
+#                     st.markdown("<h3>📝 Assess Your Knowledge</h3>", unsafe_allow_html=True)
+#                     with st.form(key=f'mcq_form_{course.id}', clear_on_submit=True):
+#                         submit = st.form_submit_button("Generate MCQs", use_container_width=True)
+#                         if submit:
+#                             with st.spinner("Generating MCQs..."):
+#                                 try:
+#                                     mcqs = generate_mcq_for_course(course)
+#                                     st.success("🔍 Multiple-Choice Questions:")
+#                                     st.write(mcqs)
+#                                 except Exception as e:
+#                                     st.error(f"An error occurred: {e}")
+
+#                     # Summarize Course
+#                     st.markdown("<h3>📄 Summarize Course</h3>", unsafe_allow_html=True)
+#                     with st.form(key=f'summarize_form_{course.id}', clear_on_submit=True):
+#                         submit = st.form_submit_button("Get Summary", use_container_width=True)
+#                         if submit:
+#                             with st.spinner("Generating summary..."):
+#                                 try:
+#                                     summary = summarize_course_documents(course)
+#                                     st.success("📖 Course Summary:")
+#                                     st.write(summary)
+#                                 except Exception as e:
+#                                     st.error(f"An error occurred: {e}")
+
+#                     # Chat with Documents
+#                     st.markdown("<h3>💬 Chat with Course Material</h3>", unsafe_allow_html=True)
+#                     with st.form(key=f'chat_form_{course.id}', clear_on_submit=True):
+#                         user_question = st.text_input(f"Ask a question about {course.name}:", key=f"question_input_{course.id}")
+#                         submit = st.form_submit_button("Send", use_container_width=True)
+#                         if submit:
+#                             if user_question.strip():
+#                                 with st.spinner("Processing your question..."):
+#                                     try:
+#                                         response = chat_with_documents(course, user_question)
+#                                         st.success("Response:")
+#                                         st.markdown(f"<p style='color: black;'>{response}</p>", unsafe_allow_html=True)
+#                                     except Exception as e:
+#                                         st.error(f"An error occurred: {e}")
+#                             else:
+#                                 st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
+
+#                     st.markdown("</div>", unsafe_allow_html=True)
+
+#     # ---------------- NEW POPUP CODE START ----------------
+
+#     # Initialize state variables for popup if not done
+#     # (Do this in main() as well if needed, but placing here for clarity)
+#     # It's best to ensure these are in the main function
+#     # We'll just rely on them existing at runtime
+#     # See main() for their initialization.
+
+#     # Check if the popup should be displayed
+#     if st.session_state.show_chat_popup:
+#         # Inject custom CSS for the modal popup
+#         st.markdown("""
+#         <style>
+#         .modal-overlay {
+#             position: fixed; 
+#             top: 0; left: 0;
+#             width: 100%; height: 100%;
+#             background: rgba(0,0,0,0.6);
+#             display: flex; justify-content: center; align-items: center;
+#             z-index: 9999; 
+#         }
+
+#         .modal-content {
+#             background: #ffffff;
+#             color: #000000;
+#             width: 500px;
+#             max-width: 90%;
+#             padding: 20px;
+#             border-radius: 10px;
+#             position: relative;
+#         }
+
+#         .modal-close {
+#             position: absolute; 
+#             top: 10px; right: 10px;
+#             background: transparent;
+#             border: none;
+#             font-size: 18px;
+#             cursor: pointer;
+#         }
+
+#         .chat-container {
+#             max-height: 300px;
+#             overflow-y: auto;
+#             border: 1px solid #ddd;
+#             padding: 10px;
+#             margin-bottom: 10px;
+#         }
+
+#         .user-question {
+#             font-weight: bold;
+#             margin-top: 10px;
+#         }
+
+#         .assistant-answer {
+#             margin-top: 5px;
+#             margin-bottom: 10px;
+#         }
+#         </style>
+#         """, unsafe_allow_html=True)
+
+#         st.markdown("""
+#         <div class="modal-overlay">
+#             <div class="modal-content">
+#                 <button class="modal-close" onclick="document.querySelector('.modal-overlay').style.display='none';">X</button>
+#                 <h3>Q&A Chat</h3>
+#                 <div class="chat-container" id="chat-history">
+#         """, unsafe_allow_html=True)
+
+#         # Display chat history
+#         for entry in st.session_state.chat_history:
+#             st.markdown(f"<div class='user-question'>User: {entry['question']}</div>", unsafe_allow_html=True)
+#             st.markdown(f"<div class='assistant-answer'>Assistant: {entry['answer']}</div>", unsafe_allow_html=True)
+
+#         st.markdown("</div>", unsafe_allow_html=True)
+
+#         # Input form for new question
+#         with st.form(key='chat_form_popup', clear_on_submit=True):
+#             question = st.text_input("Ask a new question:", key='chat_input_popup')
+#             send = st.form_submit_button("Send")
+
+#             if send and question.strip():
+#                 # Pick the first course or adapt logic as needed
+#                 courses = session_db.query(Course).all()
+#                 if courses:
+#                     selected_course = courses[0]  # Simplified example
+#                     answer = chat_with_documents(selected_course, question)
+#                     st.session_state.chat_history.append({"question": question, "answer": answer})
+#                     st.experimental_rerun()
+
+#         # Close popup button
+#         if st.button("Close"):
+#             st.session_state.show_chat_popup = False
+#             st.experimental_rerun()
+
+#         st.markdown("</div></div>", unsafe_allow_html=True)
+#     # ---------------- NEW POPUP CODE END ---------------- 
+
+
 def student_page():
     inject_css()
     # The dark theme styling you previously used
@@ -1274,10 +1551,21 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
     background: #357ABD;
 }
+.flashcard, .mcq, .summary {
+    background-color: #1E1E1E;
+    border-left: 5px solid #4A90E2;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+.flashcard h4, .mcq h4, .summary h4 {
+    margin-bottom: 10px;
+    color: #4A90E2;
+}
 </style>
 """, unsafe_allow_html=True)
 
-    st.markdown("<h1 class='dashboard-title'>My Cources</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='dashboard-title'>My Courses</h1>", unsafe_allow_html=True)
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
     # Add a button to open the chat popup
@@ -1303,7 +1591,7 @@ h1, h2, h3, h4, h5, h6 {
                 <h3>{course.name}</h3>
                 <p><strong>Professor:</strong> {course.professor_id}</p>
                 <button class="view-details-button" onclick="document.getElementById('details-{course.id}').style.display='block';">
-                    View Services
+                    View Courses 
                 </button>
             </div>
             """, unsafe_allow_html=True)
@@ -1329,7 +1617,7 @@ h1, h2, h3, h4, h5, h6 {
                                 try:
                                     flashcards = generate_flashcards_for_course(course)
                                     st.success("🃏 Here are your flashcards:")
-                                    st.write(flashcards)
+                                    st.markdown(f"<div class='flashcard'>{flashcards.replace('\n', '<br>')}</div>", unsafe_allow_html=True)
                                 except Exception as e:
                                     st.error(f"An error occurred: {e}")
 
@@ -1342,7 +1630,13 @@ h1, h2, h3, h4, h5, h6 {
                                 try:
                                     mcqs = generate_mcq_for_course(course)
                                     st.success("🔍 Multiple-Choice Questions:")
-                                    st.write(mcqs)
+                                    # Format MCQs with HTML for better styling
+                                    mcq_html = ""
+                                    mcq_list = mcqs.strip().split('\n\n')
+                                    for mcq in mcq_list:
+                                        if mcq.strip():
+                                            mcq_html += f"<div class='mcq'><strong>{mcq.replace('\n', '<br>')}</strong></div>"
+                                    st.markdown(mcq_html, unsafe_allow_html=True)
                                 except Exception as e:
                                     st.error(f"An error occurred: {e}")
 
@@ -1355,7 +1649,7 @@ h1, h2, h3, h4, h5, h6 {
                                 try:
                                     summary = summarize_course_documents(course)
                                     st.success("📖 Course Summary:")
-                                    st.write(summary)
+                                    st.markdown(f"<div class='summary'>{summary.replace('\n', '<br>')}</div>", unsafe_allow_html=True)
                                 except Exception as e:
                                     st.error(f"An error occurred: {e}")
 
@@ -1380,101 +1674,10 @@ h1, h2, h3, h4, h5, h6 {
 
     # ---------------- NEW POPUP CODE START ----------------
 
-    # Initialize state variables for popup if not done
-    # (Do this in main() as well if needed, but placing here for clarity)
-    # It's best to ensure these are in the main function
-    # We'll just rely on them existing at runtime
-    # See main() for their initialization.
+    # (Popup code remains unchanged)
 
-    # Check if the popup should be displayed
-    if st.session_state.show_chat_popup:
-        # Inject custom CSS for the modal popup
-        st.markdown("""
-        <style>
-        .modal-overlay {
-            position: fixed; 
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 9999; 
-        }
-
-        .modal-content {
-            background: #ffffff;
-            color: #000000;
-            width: 500px;
-            max-width: 90%;
-            padding: 20px;
-            border-radius: 10px;
-            position: relative;
-        }
-
-        .modal-close {
-            position: absolute; 
-            top: 10px; right: 10px;
-            background: transparent;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-        }
-
-        .chat-container {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-
-        .user-question {
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .assistant-answer {
-            margin-top: 5px;
-            margin-bottom: 10px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-        st.markdown("""
-        <div class="modal-overlay">
-            <div class="modal-content">
-                <button class="modal-close" onclick="document.querySelector('.modal-overlay').style.display='none';">X</button>
-                <h3>Q&A Chat</h3>
-                <div class="chat-container" id="chat-history">
-        """, unsafe_allow_html=True)
-
-        # Display chat history
-        for entry in st.session_state.chat_history:
-            st.markdown(f"<div class='user-question'>User: {entry['question']}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='assistant-answer'>Assistant: {entry['answer']}</div>", unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # Input form for new question
-        with st.form(key='chat_form_popup', clear_on_submit=True):
-            question = st.text_input("Ask a new question:", key='chat_input_popup')
-            send = st.form_submit_button("Send")
-
-            if send and question.strip():
-                # Pick the first course or adapt logic as needed
-                courses = session_db.query(Course).all()
-                if courses:
-                    selected_course = courses[0]  # Simplified example
-                    answer = chat_with_documents(selected_course, question)
-                    st.session_state.chat_history.append({"question": question, "answer": answer})
-                    st.experimental_rerun()
-
-        # Close popup button
-        if st.button("Close"):
-            st.session_state.show_chat_popup = False
-            st.experimental_rerun()
-
-        st.markdown("</div></div>", unsafe_allow_html=True)
     # ---------------- NEW POPUP CODE END ----------------
+
 
 def generate_podcast_for_course(course, openai_api_key):
     """
