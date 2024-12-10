@@ -453,7 +453,7 @@ def signup_page():
      """, unsafe_allow_html=True)
 
     st.markdown("<h2 style='text-align: center;'>Sign Up</h2>", unsafe_allow_html=True)
-    st.markdown("<p>Sign up now and start learning today!</p>", unsafe_allow_html=True)
+    st.markdown("<p>Sign up now and start Contributing to Edtech!</p>", unsafe_allow_html=True)
 
     with st.form(key="signup_form"):
          col1, col2 = st.columns(2)
@@ -1476,103 +1476,100 @@ def home_page():
 #         st.markdown("</div></div>", unsafe_allow_html=True)
 #     # ---------------- NEW POPUP CODE END ---------------- 
 
-
 def student_page():
     inject_css()
-    # The dark theme styling you previously used
+    # Updated styling to include .chat-response
     st.markdown("""
-<style>
-.stApp {
-    background-color: #121212;
-    color: white;
-}
-[data-testid="stExpander"] .streamlit-expanderHeader {
-    background-color: #333333;
-    color: white !important;
-    font-size: 16px;
-    font-weight: bold;
-    padding: 10px;
-}
-.course-card {
-    background-color: #1E1E1E;
-    color: white;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    margin-bottom: 20px;
-    transition: transform 0.2s ease-in-out;
-}
-.course-card:hover {
-    transform: scale(1.03);
-    background-color: #292929;
-}
-.view-details-button {
-    background-color: #4A90E2;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-weight: bold;
-    font-size: 14px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-.view-details-button:hover {
-    background-color: #357ABD;
-}
-.hidden-details {
-    background-color: #2A2A2A;
-    padding: 20px;
-    border-radius: 10px;
-    margin-top: 10px;
-}
-h1, h2, h3, h4, h5, h6 {
-    color: #CCCCCC;
-}
-.alert-box {
-    background-color: #333333;
-    color: white;
-    padding: 15px;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 10px;
-}
-::-webkit-scrollbar {
-    width: 8px;
-}
-::-webkit-scrollbar-track {
-    background: #1E1E1E;
-}
-::-webkit-scrollbar-thumb {
-    background: #4A90E2;
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #357ABD;
-}
-.flashcard, .mcq, .summary {
-    background-color: #1E1E1E;
-    border-left: 5px solid #4A90E2;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-}
-.flashcard h4, .mcq h4, .summary h4 {
-    margin-bottom: 10px;
-    color: #4A90E2;
-}
-</style>
-""", unsafe_allow_html=True)
+    <style>
+    .stApp {
+        background-color: #121212;
+        color: white;
+    }
+    [data-testid="stExpander"] .streamlit-expanderHeader {
+        background-color: #333333;
+        color: white !important;
+        font-size: 16px;
+        font-weight: bold;
+        padding: 10px;
+    }
+    .course-card {
+        background-color: #1E1E1E;
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        margin-bottom: 20px;
+        transition: transform 0.2s ease-in-out, background-color 0.3s ease;
+    }
+    .course-card:hover {
+        transform: scale(1.03);
+        background-color: #292929;
+    }
+    .hidden-details {
+        background-color: #2A2A2A;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 10px;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #CCCCCC;
+    }
+    .flashcard, .mcq, .summary {
+        background-color: #1E1E1E;
+        border-left: 5px solid #4A90E2;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+    }
+    .flashcard h4, .mcq h4, .summary h4 {
+        margin-bottom: 10px;
+        color: #4A90E2;
+    }
+    .view-details-button {
+        background-color: #4A90E2;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        font-weight: bold;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-top: 10px;
+    }
+    .view-details-button:hover {
+        background-color: #357ABD;
+    }
+    .info-message {
+        color: #cccccc;
+    }
+    /* New styling for chat responses */
+    .chat-response {
+        background-color: #1E1E1E;
+        border-left: 5px solid #00b0ff;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        transition: background-color 0.2s ease;
+    }
+    .chat-response:hover {
+        background-color: #2a2a2a;
+    }
+    .chat-response p {
+        margin: 0;
+        color: #cccccc;
+        line-height: 1.6;
+        font-size: 14px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     st.markdown("<h1 class='dashboard-title'>My Courses</h1>", unsafe_allow_html=True)
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-    # Add a button to open the chat popup
     if st.button("Open Q&A Chat"):
         st.session_state.show_chat_popup = True
 
-    # Available Courses Section
     st.markdown("<h2 class='section-header' style='color: #003366;'>Available Courses</h2>", unsafe_allow_html=True)
     courses = session_db.query(Course).all()
 
@@ -1590,19 +1587,20 @@ h1, h2, h3, h4, h5, h6 {
             <div class='course-card'>
                 <h3>{course.name}</h3>
                 <p><strong>Professor:</strong> {course.professor_id}</p>
-                <button class="view-details-button" onclick="document.getElementById('details-{course.id}').style.display='block';">
-                    View Courses 
-                </button>
             </div>
             """, unsafe_allow_html=True)
 
-            # Show Details Section Dynamically
+            # View Details Button
             if st.button(f"View Details for {course.name}", key=f"view_details_{course.id}"):
-                st.session_state.opened_course_id = course.id if st.session_state.opened_course_id != course.id else None
+                if st.session_state.opened_course_id == course.id:
+                    st.session_state.opened_course_id = None
+                else:
+                    st.session_state.opened_course_id = course.id
 
+            # Show Details if opened
             if st.session_state.opened_course_id == course.id:
                 with st.container():
-                    st.markdown(f"<div id='details-{course.id}' class='hidden-details'>", unsafe_allow_html=True)
+                    st.markdown("<div class='hidden-details'>", unsafe_allow_html=True)
                     st.markdown(f"<h3>Details for {course.name}</h3>", unsafe_allow_html=True)
 
                     # Podcast Feature
@@ -1611,7 +1609,7 @@ h1, h2, h3, h4, h5, h6 {
                     # Flashcards
                     st.markdown("<h3>📚 Study with Flashcards</h3>", unsafe_allow_html=True)
                     with st.form(key=f'flashcards_form_{course.id}', clear_on_submit=True):
-                        submit = st.form_submit_button("Generate Flashcards", use_container_width=True)
+                        submit = st.form_submit_button("Generate Flashcards")
                         if submit:
                             with st.spinner("Generating flashcards..."):
                                 try:
@@ -1624,18 +1622,17 @@ h1, h2, h3, h4, h5, h6 {
                     # MCQs
                     st.markdown("<h3>📝 Assess Your Knowledge</h3>", unsafe_allow_html=True)
                     with st.form(key=f'mcq_form_{course.id}', clear_on_submit=True):
-                        submit = st.form_submit_button("Generate MCQs", use_container_width=True)
+                        submit = st.form_submit_button("Generate MCQs")
                         if submit:
                             with st.spinner("Generating MCQs..."):
                                 try:
                                     mcqs = generate_mcq_for_course(course)
                                     st.success("🔍 Multiple-Choice Questions:")
-                                    # Format MCQs with HTML for better styling
                                     mcq_html = ""
                                     mcq_list = mcqs.strip().split('\n\n')
-                                    for mcq in mcq_list:
-                                        if mcq.strip():
-                                            mcq_html += f"<div class='mcq'><strong>{mcq.replace('\n', '<br>')}</strong></div>"
+                                    for mcq_item in mcq_list:
+                                        if mcq_item.strip():
+                                            mcq_html += f"<div class='mcq'><strong>{mcq_item.replace('\n', '<br>')}</strong></div>"
                                     st.markdown(mcq_html, unsafe_allow_html=True)
                                 except Exception as e:
                                     st.error(f"An error occurred: {e}")
@@ -1643,7 +1640,7 @@ h1, h2, h3, h4, h5, h6 {
                     # Summarize Course
                     st.markdown("<h3>📄 Summarize Course</h3>", unsafe_allow_html=True)
                     with st.form(key=f'summarize_form_{course.id}', clear_on_submit=True):
-                        submit = st.form_submit_button("Get Summary", use_container_width=True)
+                        submit = st.form_submit_button("Get Summary")
                         if submit:
                             with st.spinner("Generating summary..."):
                                 try:
@@ -1657,14 +1654,15 @@ h1, h2, h3, h4, h5, h6 {
                     st.markdown("<h3>💬 Chat with Course Material</h3>", unsafe_allow_html=True)
                     with st.form(key=f'chat_form_{course.id}', clear_on_submit=True):
                         user_question = st.text_input(f"Ask a question about {course.name}:", key=f"question_input_{course.id}")
-                        submit = st.form_submit_button("Send", use_container_width=True)
+                        submit = st.form_submit_button("Send")
                         if submit:
                             if user_question.strip():
                                 with st.spinner("Processing your question..."):
                                     try:
                                         response = chat_with_documents(course, user_question)
                                         st.success("Response:")
-                                        st.markdown(f"<p style='color: black;'>{response}</p>", unsafe_allow_html=True)
+                                        # Render response in a `.chat-response` container
+                                        st.markdown(f"<div class='chat-response'><p>{response}</p></div>", unsafe_allow_html=True)
                                     except Exception as e:
                                         st.error(f"An error occurred: {e}")
                             else:
