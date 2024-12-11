@@ -7,7 +7,17 @@ import base64
 import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
-import csv
+import csv  
+import streamlit as st
+from langchain_openai import ChatOpenAI  # Ensure you have the correct package installed
+from langchain.schema import HumanMessage, SystemMessage
+from sentence_transformers import SentenceTransformer
+import urllib.request
+from bs4 import BeautifulSoup 
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+import os
+import numpy as np
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 from langchain.document_loaders import PyPDFLoader, TextLoader
@@ -1458,6 +1468,72 @@ def update_course_csv(csv_file_path, question, topic):
 
 # --- Main Function ---
 
+def generate_youtube_keyword(api_key, query):
+    """
+    Generate a YouTube search keyword using LangChain.
+    """
+    chat = ChatOpenAI(openai_api_key=api_key, model="gpt-3.5-turbo", temperature=0.7)
+    messages = [
+        SystemMessage(content="You are an expert at generating YouTube search keywords."),
+        HumanMessage(content=f"Suggest a good YouTube search keyword for this topic: {query}")
+    ]
+    try:
+        response = chat.invoke(messages)
+        return response.content.strip()
+    except Exception as e:
+        return f"Error: {e}"
+
+def search_youtube(keyword, num_results=10):
+    """
+    Search YouTube and return the specified number of video links.
+    """
+    search_keyword = keyword.replace(" ", "+")
+    url = f"https://www.youtube.com/results?search_query={search_keyword}"
+    html = urllib.request.urlopen(url).read()
+    soup = BeautifulSoup(html, 'html.parser')
+    video_ids = re.findall(r"watch\?v=(\S{11})", str(soup))
+    return [f"https://www.youtube.com/watch?v={video_id}" for video_id in video_ids[:num_results]] if video_ids else []
+
+def download_transcripts(video_links, folder_path="transcripts"):
+    """
+    Download video transcripts and save them to a folder.
+    """
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    transcripts = {}
+    for i, video_link in enumerate(video_links):
+        video_id = video_link.split("=")[-1]
+        transcript_path = os.path.join(folder_path, f"transcript_{video_id}.txt")
+        # Simulated transcript fetching (replace with actual API if needed)
+        fake_transcript = f"Transcript for video {video_id}"  # Replace with actual transcript fetching logic
+        with open(transcript_path, 'w', encoding='utf-8') as file:
+            file.write(fake_transcript)
+        transcripts[video_id] = fake_transcript
+
+    return transcripts
+
+def embed_transcripts(transcripts, model_name='all-MiniLM-L6-v2'):
+    """
+    Generate embeddings for transcripts.
+    """
+    model = SentenceTransformer(model_name)
+    embeddings = {}
+    for video_id, transcript in transcripts.items():
+        embedding = model.encode(transcript, convert_to_numpy=True)
+        embeddings[video_id] = embedding
+    return embeddings
+
+def recommend_video(query_embedding, video_embeddings):
+    """
+    Recommend the most relevant video based on similarity to the query embedding.
+    """
+    video_ids = list(video_embeddings.keys())
+    embeddings = np.array(list(video_embeddings.values()))
+    similarities = cosine_similarity([query_embedding], embeddings)[0]
+    top_index = similarities.argmax()
+    return video_ids[top_index], similarities[top_index]
+
 def student_page():
     # Apply a dark theme similar to the professor page
     st.markdown("""
@@ -1696,8 +1772,48 @@ def student_page():
                             else:
                                 st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
 
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    # Add the YouTube Recommendation Feature
+                    st.markdown("<h3>📺 Find Relevant YouTube Video</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'youtube_form_{course.id}', clear_on_submit=True):
+                        youtube_query = st.text_input("Enter your query for YouTube search:", key=f"youtube_input_{course.id}")
+                        submit_youtube = st.form_submit_button("Find Best Video")
+                        if submit_youtube:
+                            if youtube_query.strip():
+                                with st.spinner("Processing your query..."):
+                                    try:
+                                        # Step 1: Generate a refined YouTube search keyword
+                                        refined_query = generate_youtube_keyword(OPENAI_API_KEY, youtube_query)
+                                        st.markdown(f"**Generated Keyword:** {refined_query}")
 
+                                        # Step 2: Search YouTube for videos
+                                        video_links = search_youtube(refined_query, num_results=3)
+                                        if not video_links:
+                                            st.error("No videos found. Please refine your query.")
+                                        else:
+                                            st.markdown(f"**Video Links:**")
+                                            for link in video_links:
+                                                st.markdown(f"- {link}")
+
+                                            # Step 3: Download transcripts for the top 3 videos
+                                            transcripts = download_transcripts(video_links)
+
+                                            # Step 4: Embed transcripts
+                                            video_embeddings = embed_transcripts(transcripts)
+
+                                            # Step 5: Generate query embedding and recommend the best video
+                                            model = SentenceTransformer('all-MiniLM-L6-v2')
+                                            query_embedding = model.encode(youtube_query, convert_to_numpy=True)
+                                            best_video_id, similarity = recommend_video(query_embedding, video_embeddings)
+                                            best_video_link = f"https://www.youtube.com/watch?v={best_video_id}"
+                                            st.success(f"**Best Video:** [{best_video_link}])\n") 
+                                            st.video(best_video_link)
+
+                                    except Exception as e:
+                                        st.error(f"An error occurred: {e}")
+                            else:
+                                st.error("Please enter a query.")
+
+                    st.markdown("</div>", unsafe_allow_html=True)
 def generate_podcast_for_course(course, openai_api_key):
     """
     Allows students to generate a podcast based on the course materials or by uploading additional PDFs.
@@ -2239,4 +2355,4 @@ def main():
         page_mapping.get(st.session_state.page, home_page)()
 
 if __name__ == "__main__":
-    main() 
+    main()      
