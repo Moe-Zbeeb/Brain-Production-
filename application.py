@@ -29,8 +29,14 @@ from io import BytesIO
 from wordcloud import WordCloud, STOPWORDS
 from application1 import about_page, contact_page, inject_css, inject_css2, set_overlay_bg_image, encode_image_to_base64
 from PIL import Image
-# transcription.py
 import os
+import base64
+import pandas as pd
+import streamlit as st
+import re
+import csv
+from datetime import datetime
+import logging
 import re
 import subprocess
 import assemblyai as aai
@@ -217,27 +223,7 @@ class LangchainHandler:
             logging.error(f"Error creating vector store: {str(e)}")
             return None
 
-    # def get_response(self, vector_store, question):
-    #     """
-    #     Get a response to the user's question using the vector store.
-    #     :param vector_store: FAISS vector store.
-    #     :param question: User's question string.
-    #     :return: Response string.
-    #     """
-    #     try:
-    #         retriever = vector_store.as_retriever(search_kwargs={"k": 3})
-    #         qa_chain = RetrievalQA.from_chain_type(
-    #             llm=self.llm,
-    #             chain_type="stuff",
-    #             retriever=retriever
-    #         )
-    #         response = qa_chain.run(question)
-    #         logging.info("Generated response to user question.")
-    #         return response.strip()
-    #     except Exception as e:
-    #         logging.error(f"Error generating response: {str(e)}")
-    #         return "Sorry, I couldn't process your question at the moment." 
-    
+  
     
     def get_response(self, vector_store, question):
         """
@@ -1383,8 +1369,7 @@ def home_page():
     """, unsafe_allow_html=True)
     inject_css2()
 
-
-import re
+# --- Helper Functions ---
 
 def classify_topic(question):
     """
@@ -1393,7 +1378,6 @@ def classify_topic(question):
     :param question: The question text.
     :return: The determined topic as a string.
     """
-    # Define a mapping of keywords to topics
     keyword_topic_map = {
         'regression': 'Regression',
         'classification': 'Classification',
@@ -1421,16 +1405,10 @@ def classify_topic(question):
     question_lower = question.lower()
     
     for keyword, topic in keyword_topic_map.items():
-        # Use word boundaries to match whole words
         if re.search(r'\b' + re.escape(keyword) + r'\b', question_lower):
             return topic
     
     return 'General'  # Default topic if no keywords match
-
-import os
-import csv
-from datetime import datetime
-import logging
 
 def update_course_csv(csv_file_path, question, topic):
     """
@@ -1441,24 +1419,34 @@ def update_course_csv(csv_file_path, question, topic):
     :param topic: The classified topic of the question.
     """
     try:
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(csv_file_path), exist_ok=True)
+        # Log the CSV file path for debugging
+        logging.debug(f"CSV File Path: '{csv_file_path}'")
+        
+        # Extract directory from the CSV file path
+        directory = os.path.dirname(csv_file_path)
+        
+        # Only attempt to create directories if a directory path is provided
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+            logging.debug(f"Ensured directory exists: '{directory}'")
+        else:
+            logging.debug("No directory specified. Using current working directory.")
         
         # Check if the CSV file exists
         file_exists = os.path.isfile(csv_file_path)
         
         # Open the CSV file in append mode
         with open(csv_file_path, 'a', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['Timestamp', 'Topic', 'Question']
+            fieldnames = ['Topic', 'Question']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             
             # If the file doesn't exist, write the header
             if not file_exists:
                 writer.writeheader()
+                logging.debug("CSV header written.")
             
             # Write the new row
             writer.writerow({
-                'Timestamp': datetime.utcnow().isoformat(),
                 'Topic': topic,
                 'Question': question
             })
@@ -1697,7 +1685,7 @@ def student_page():
                                         topic = classify_topic(user_question)
 
                                         # Define the path to your CSV file
-                                        csv_file_path = "ml_grouped_topics_questions.csv"
+                                        csv_file_path = os.path.join("data", "ml_grouped_topics_questions.csv")  # Specify directory
 
                                         # Update the CSV in real-time
                                         update_course_csv(csv_file_path, user_question, topic)
@@ -1709,8 +1697,6 @@ def student_page():
                                 st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
 
                     st.markdown("</div>", unsafe_allow_html=True)
-    # Popup code remains unchanged if present in the main code
-
 
 def generate_podcast_for_course(course, openai_api_key):
     """
@@ -2059,7 +2045,7 @@ def manage_courses_section():
                 insights_container = st.container()
                 with insights_container:
                     # Define the path to your backend CSV file (assuming one per course)
-                    csv_file_path = "ml_grouped_topics_questions.csv"  # Adjust path as needed
+                    csv_file_path = "data/ml_grouped_topics_questions.csv"  # Adjust path as needed
 
                     if os.path.exists(csv_file_path):
                         df = pd.read_csv(csv_file_path)
