@@ -1,6 +1,3 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
-
 
 import urllib.request
 from bs4 import BeautifulSoup
@@ -14,14 +11,17 @@ soup = BeautifulSoup(html, 'html.parser')
 for vid in soup.findAll(attrs={'class':'yt-uix-tile-link'}):
     print('https://www.youtube.com' + vid['href'])
     
-    
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import HumanMessage, SystemMessage
+
+
 def generate_youtube_title_with_langchain(api_key, query):
     """
     Generate a YouTube search title using LangChain with OpenAI's API.
     
     Parameters:
         api_key (str): Your OpenAI API key.
-        query (str): The search query or keyword description.
+        query (str): The search query or keyword description.  
         
     Returns:
         str: A suggested YouTube video title.
@@ -53,3 +53,4 @@ OPENAI_API_KEY = "sk-proj-4h2jV4miQaBBoty6ZdUdmpUrvXti58cKLyBZouDRXacdKrriFe3nCv
 query = "I need to know about animals. Keyword: Animal documentation"
 title = generate_youtube_title_with_langchain(OPENAI_API_KEY, query)
 print(f"Suggested YouTube Title: {title}")
+    
