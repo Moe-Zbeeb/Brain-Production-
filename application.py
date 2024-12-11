@@ -152,7 +152,7 @@ cache = InMemoryCache()
 session_db = SessionLocal()
 
 # Fetch OpenAI API key from environment variables for security
-OPENAI_API_KEY = "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"  # Ensure this environment variable is set
+OPENAI_API_KEY = "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"  # Ensure this environment variable is set
 
 if not OPENAI_API_KEY:
     logging.error("OpenAI API key is not set.")
@@ -217,42 +217,92 @@ class LangchainHandler:
             logging.error(f"Error creating vector store: {str(e)}")
             return None
 
+    # def get_response(self, vector_store, question):
+    #     """
+    #     Get a response to the user's question using the vector store.
+    #     :param vector_store: FAISS vector store.
+    #     :param question: User's question string.
+    #     :return: Response string.
+    #     """
+    #     try:
+    #         retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+    #         qa_chain = RetrievalQA.from_chain_type(
+    #             llm=self.llm,
+    #             chain_type="stuff",
+    #             retriever=retriever
+    #         )
+    #         response = qa_chain.run(question)
+    #         logging.info("Generated response to user question.")
+    #         return response.strip()
+    #     except Exception as e:
+    #         logging.error(f"Error generating response: {str(e)}")
+    #         return "Sorry, I couldn't process your question at the moment." 
+    
+    
     def get_response(self, vector_store, question):
         """
-        Get a response to the user's question using the vector store.
+        Get an academic response to the user's question using the vector store with guardrails.
+        
         :param vector_store: FAISS vector store.
         :param question: User's question string.
-        :return: Response string.
+        :return: Academic response string.
         """
         try:
+            # Configure the retriever to fetch the top 3 relevant documents
             retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+
+            # Define a custom prompt template with academic constraints
+            prompt_template = """
+            You are an academic assistant. Provide a clear, concise, and well-structured academic response to the question below.
+            Base your answer solely on the provided documents. Do not introduce information not contained within these documents.
+            Ensure that your response adheres to academic standards, including proper terminology and a formal tone.
+            Remember that you are a Teaching assistant you should not answer things not related to Documents Below, and please answer an answer that is garuanettted to be understood by the student.
+            Question: {question}
+
+            Documents:
+            {context}
+
+            Response:
+            """
+
+            # Initialize the prompt with the defined template
+            prompt = PromptTemplate(
+                template=prompt_template,
+                input_variables=["question", "context"]
+            )
+
+            # Initialize the RetrievalQA chain with the custom prompt via chain_type_kwargs
             qa_chain = RetrievalQA.from_chain_type(
                 llm=self.llm,
                 chain_type="stuff",
-                retriever=retriever
+                retriever=retriever,
+                chain_type_kwargs={"prompt": prompt}
             )
+
+            # Generate the response
             response = qa_chain.run(question)
-            logging.info("Generated response to user question.")
+            logging.info("Generated academic response to user question.")
             return response.strip()
+
         except Exception as e:
             logging.error(f"Error generating response: {str(e)}")
             return "Sorry, I couldn't process your question at the moment."
 
     def summarize_documents(self, documents):
-        """
-        Summarize the list of documents using the LLM.
-        :param documents: List of Document objects.
-        :return: Summary string.
-        """
-        try:
-            # Use the summarize chain with map_reduce to handle large documents
-            chain = load_summarize_chain(self.llm, chain_type="map_reduce")
-            summary = chain.run(documents)
-            logging.info("Generated summary of course materials.")
-            return summary.strip()
-        except Exception as e:
-            logging.error(f"Error during summarization: {str(e)}")
-            return "Sorry, I couldn't summarize the course materials at the moment."
+            """
+            Summarize the list of documents using the LLM.
+            :param documents: List of Document objects.
+            :return: Summary string.
+            """
+            try:
+                # Use the summarize chain with map_reduce to handle large documents
+                chain = load_summarize_chain(self.llm, chain_type="map_reduce")
+                summary = chain.run(documents)
+                logging.info("Generated summary of course materials.")
+                return summary.strip()
+            except Exception as e:
+                logging.error(f"Error during summarization: {str(e)}")
+                return "Sorry, I couldn't summarize the course materials at the moment."
 
     def generate_mcq_questions(self, documents, num_questions=10):
         """
@@ -2183,7 +2233,8 @@ def manage_courses_section():
                     st.error("Please confirm to delete the course.")
 
 
-def generate_pie_chart(df):
+def generate_pie_chart(df):   
+    print("generating pie chart")
     topic_counts = df['Topic'].value_counts().reset_index()
     topic_counts.columns = ['Topic', 'Count']
     fig = px.pie(topic_counts, names='Topic', values='Count', title='Topic Distribution',
@@ -2191,7 +2242,8 @@ def generate_pie_chart(df):
     fig.update_traces(textposition='inside', textinfo='percent+label')
     return fig
 
-def generate_bar_chart(df):
+def generate_bar_chart(df): 
+    print("generating bar chart")
     topic_counts = df['Topic'].value_counts().sort_values(ascending=True).reset_index()
     topic_counts.columns = ['Topic', 'Count']
     fig = px.bar(topic_counts, x='Count', y='Topic', orientation='h',
@@ -2199,7 +2251,8 @@ def generate_bar_chart(df):
     fig.update_layout(showlegend=False)
     return fig
 
-def generate_wordcloud(df):
+def generate_wordcloud(df):  
+    print("generating word cloud")
     text = " ".join(df['Question'].dropna().tolist())
     wordcloud = WordCloud(width=800, height=400,
                           background_color='white',
@@ -2236,7 +2289,10 @@ def generate_csv_report(csv_file_path):
         - The number of unique topics covered.
         - Insights into the most common topics.
         - Any noticeable trends or patterns.
-        - Suggestions for areas that may need more focus based on the questions.
+        - Suggestions for areas that may need more focus based on the questions.  
+        - you are also a data analyst assisting a professor in understanding student questions from a course. 
+        - Based on the following CSV data, generate a detailed and rich report that includes: 
+        - How can we improve the course content to address these questions?
 
         CSV Data:
         {csv_data}
