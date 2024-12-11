@@ -7,7 +7,7 @@ import base64
 import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
-
+import csv
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 from langchain.document_loaders import PyPDFLoader, TextLoader
@@ -1383,283 +1383,92 @@ def home_page():
     """, unsafe_allow_html=True)
     inject_css2()
 
-# def student_page():
-#     inject_css()
-#     # The dark theme styling you previously used
-#     st.markdown("""
-# <style>
-# .stApp {
-#     background-color: #121212;
-#     color: white;
-# }
-# [data-testid="stExpander"] .streamlit-expanderHeader {
-#     background-color: #333333;
-#     color: white !important;
-#     font-size: 16px;
-#     font-weight: bold;
-#     padding: 10px;
-# }
-# .course-card {
-#     background-color: #1E1E1E;
-#     color: white;
-#     padding: 15px;
-#     border-radius: 10px;
-#     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-#     margin-bottom: 20px;
-#     transition: transform 0.2s ease-in-out;
-# }
-# .course-card:hover {
-#     transform: scale(1.03);
-#     background-color: #292929;
-# }
-# .view-details-button {
-#     background-color: #4A90E2;
-#     color: white;
-#     border: none;
-#     padding: 10px 20px;
-#     font-weight: bold;
-#     font-size: 14px;
-#     border-radius: 5px;
-#     cursor: pointer;
-#     transition: background-color 0.3s ease;
-# }
-# .view-details-button:hover {
-#     background-color: #357ABD;
-# }
-# .hidden-details {
-#     background-color: #2A2A2A;
-#     padding: 20px;
-#     border-radius: 10px;
-#     margin-top: 10px;
-# }
-# h1, h2, h3, h4, h5, h6 {
-#     color: #CCCCCC;
-# }
-# .alert-box {
-#     background-color: #333333;
-#     color: white;
-#     padding: 15px;
-#     border-radius: 5px;
-#     font-weight: bold;
-#     font-size: 14px;
-#     margin-bottom: 10px;
-# }
-# ::-webkit-scrollbar {
-#     width: 8px;
-# }
-# ::-webkit-scrollbar-track {
-#     background: #1E1E1E;
-# }
-# ::-webkit-scrollbar-thumb {
-#     background: #4A90E2;
-#     border-radius: 10px;
-# }
-# ::-webkit-scrollbar-thumb:hover {
-#     background: #357ABD;
-# }
-# </style>
-# """, unsafe_allow_html=True)
 
-#     st.markdown("<h1 class='dashboard-title'>My Cources</h1>", unsafe_allow_html=True)
-#     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+import re
 
-#     # Add a button to open the chat popup
-#     if st.button("Open Q&A Chat"):
-#         st.session_state.show_chat_popup = True
+def classify_topic(question):
+    """
+    Classifies a question into an ML topic based on keyword matching.
+    
+    :param question: The question text.
+    :return: The determined topic as a string.
+    """
+    # Define a mapping of keywords to topics
+    keyword_topic_map = {
+        'regression': 'Regression',
+        'classification': 'Classification',
+        'clustering': 'Clustering',
+        'neural network': 'Neural Networks',
+        'deep learning': 'Deep Learning',
+        'supervised learning': 'Supervised Learning',
+        'unsupervised learning': 'Unsupervised Learning',
+        'reinforcement learning': 'Reinforcement Learning',
+        'dimensionality reduction': 'Dimensionality Reduction',
+        'decision tree': 'Decision Trees',
+        'random forest': 'Random Forest',
+        'support vector machine': 'Support Vector Machines',
+        'k-means': 'K-Means Clustering',
+        'principal component analysis': 'PCA',
+        'natural language processing': 'NLP',
+        'computer vision': 'Computer Vision',
+        'gradient descent': 'Optimization',
+        'overfitting': 'Model Evaluation',
+        'underfitting': 'Model Evaluation',
+        'cross-validation': 'Model Evaluation',
+        # Add more mappings as needed
+    }
+    
+    question_lower = question.lower()
+    
+    for keyword, topic in keyword_topic_map.items():
+        # Use word boundaries to match whole words
+        if re.search(r'\b' + re.escape(keyword) + r'\b', question_lower):
+            return topic
+    
+    return 'General'  # Default topic if no keywords match
 
-#     # Available Courses Section
-#     st.markdown("<h2 class='section-header' style='color: #003366;'>Available Courses</h2>", unsafe_allow_html=True)
-#     courses = session_db.query(Course).all()
+import os
+import csv
+from datetime import datetime
+import logging
 
-#     if not courses:
-#         st.info("No courses available at the moment.")
-#         return
+def update_course_csv(csv_file_path, question, topic):
+    """
+    Appends a new question with its topic to the specified CSV file.
+    
+    :param csv_file_path: Path to the CSV file.
+    :param question: The question text.
+    :param topic: The classified topic of the question.
+    """
+    try:
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(csv_file_path), exist_ok=True)
+        
+        # Check if the CSV file exists
+        file_exists = os.path.isfile(csv_file_path)
+        
+        # Open the CSV file in append mode
+        with open(csv_file_path, 'a', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['Timestamp', 'Topic', 'Question']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            
+            # If the file doesn't exist, write the header
+            if not file_exists:
+                writer.writeheader()
+            
+            # Write the new row
+            writer.writerow({
+                'Timestamp': datetime.utcnow().isoformat(),
+                'Topic': topic,
+                'Question': question
+            })
+        
+        logging.info(f"Appended question to CSV: Topic='{topic}', Question='{question}'")
+    
+    except Exception as e:
+        logging.error(f"Failed to update CSV: {e}")
 
-#     if "opened_course_id" not in st.session_state:
-#         st.session_state.opened_course_id = None
-
-#     for course in courses:
-#         with st.container():
-#             # Display Course Card
-#             st.markdown(f"""
-#             <div class='course-card'>
-#                 <h3>{course.name}</h3>
-#                 <p><strong>Professor:</strong> {course.professor_id}</p>
-#                 <button class="view-details-button" onclick="document.getElementById('details-{course.id}').style.display='block';">
-#                     View Courses 
-#                 </button>
-#             </div>
-#             """, unsafe_allow_html=True)
-
-#             # Show Details Section Dynamically
-#             if st.button(f"View Details for {course.name}", key=f"view_details_{course.id}"):
-#                 st.session_state.opened_course_id = course.id if st.session_state.opened_course_id != course.id else None
-
-#             if st.session_state.opened_course_id == course.id:
-#                 with st.container():
-#                     st.markdown(f"<div id='details-{course.id}' class='hidden-details'>", unsafe_allow_html=True)
-#                     st.markdown(f"<h3>Details for {course.name}</h3>", unsafe_allow_html=True)
-
-#                     # Podcast Feature
-#                     generate_podcast_for_course(course, OPENAI_API_KEY)
-
-#                     # Flashcards
-#                     st.markdown("<h3>📚 Study with Flashcards</h3>", unsafe_allow_html=True)
-#                     with st.form(key=f'flashcards_form_{course.id}', clear_on_submit=True):
-#                         submit = st.form_submit_button("Generate Flashcards", use_container_width=True)
-#                         if submit:
-#                             with st.spinner("Generating flashcards..."):
-#                                 try:
-#                                     flashcards = generate_flashcards_for_course(course)
-#                                     st.success("🃏 Here are your flashcards:")
-#                                     st.write(flashcards)
-#                                 except Exception as e:
-#                                     st.error(f"An error occurred: {e}")
-
-#                     # MCQs
-#                     st.markdown("<h3>📝 Assess Your Knowledge</h3>", unsafe_allow_html=True)
-#                     with st.form(key=f'mcq_form_{course.id}', clear_on_submit=True):
-#                         submit = st.form_submit_button("Generate MCQs", use_container_width=True)
-#                         if submit:
-#                             with st.spinner("Generating MCQs..."):
-#                                 try:
-#                                     mcqs = generate_mcq_for_course(course)
-#                                     st.success("🔍 Multiple-Choice Questions:")
-#                                     st.write(mcqs)
-#                                 except Exception as e:
-#                                     st.error(f"An error occurred: {e}")
-
-#                     # Summarize Course
-#                     st.markdown("<h3>📄 Summarize Course</h3>", unsafe_allow_html=True)
-#                     with st.form(key=f'summarize_form_{course.id}', clear_on_submit=True):
-#                         submit = st.form_submit_button("Get Summary", use_container_width=True)
-#                         if submit:
-#                             with st.spinner("Generating summary..."):
-#                                 try:
-#                                     summary = summarize_course_documents(course)
-#                                     st.success("📖 Course Summary:")
-#                                     st.write(summary)
-#                                 except Exception as e:
-#                                     st.error(f"An error occurred: {e}")
-
-#                     # Chat with Documents
-#                     st.markdown("<h3>💬 Chat with Course Material</h3>", unsafe_allow_html=True)
-#                     with st.form(key=f'chat_form_{course.id}', clear_on_submit=True):
-#                         user_question = st.text_input(f"Ask a question about {course.name}:", key=f"question_input_{course.id}")
-#                         submit = st.form_submit_button("Send", use_container_width=True)
-#                         if submit:
-#                             if user_question.strip():
-#                                 with st.spinner("Processing your question..."):
-#                                     try:
-#                                         response = chat_with_documents(course, user_question)
-#                                         st.success("Response:")
-#                                         st.markdown(f"<p style='color: black;'>{response}</p>", unsafe_allow_html=True)
-#                                     except Exception as e:
-#                                         st.error(f"An error occurred: {e}")
-#                             else:
-#                                 st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
-
-#                     st.markdown("</div>", unsafe_allow_html=True)
-
-#     # ---------------- NEW POPUP CODE START ----------------
-
-#     # Initialize state variables for popup if not done
-#     # (Do this in main() as well if needed, but placing here for clarity)
-#     # It's best to ensure these are in the main function
-#     # We'll just rely on them existing at runtime
-#     # See main() for their initialization.
-
-#     # Check if the popup should be displayed
-#     if st.session_state.show_chat_popup:
-#         # Inject custom CSS for the modal popup
-#         st.markdown("""
-#         <style>
-#         .modal-overlay {
-#             position: fixed; 
-#             top: 0; left: 0;
-#             width: 100%; height: 100%;
-#             background: rgba(0,0,0,0.6);
-#             display: flex; justify-content: center; align-items: center;
-#             z-index: 9999; 
-#         }
-
-#         .modal-content {
-#             background: #ffffff;
-#             color: #000000;
-#             width: 500px;
-#             max-width: 90%;
-#             padding: 20px;
-#             border-radius: 10px;
-#             position: relative;
-#         }
-
-#         .modal-close {
-#             position: absolute; 
-#             top: 10px; right: 10px;
-#             background: transparent;
-#             border: none;
-#             font-size: 18px;
-#             cursor: pointer;
-#         }
-
-#         .chat-container {
-#             max-height: 300px;
-#             overflow-y: auto;
-#             border: 1px solid #ddd;
-#             padding: 10px;
-#             margin-bottom: 10px;
-#         }
-
-#         .user-question {
-#             font-weight: bold;
-#             margin-top: 10px;
-#         }
-
-#         .assistant-answer {
-#             margin-top: 5px;
-#             margin-bottom: 10px;
-#         }
-#         </style>
-#         """, unsafe_allow_html=True)
-
-#         st.markdown("""
-#         <div class="modal-overlay">
-#             <div class="modal-content">
-#                 <button class="modal-close" onclick="document.querySelector('.modal-overlay').style.display='none';">X</button>
-#                 <h3>Q&A Chat</h3>
-#                 <div class="chat-container" id="chat-history">
-#         """, unsafe_allow_html=True)
-
-#         # Display chat history
-#         for entry in st.session_state.chat_history:
-#             st.markdown(f"<div class='user-question'>User: {entry['question']}</div>", unsafe_allow_html=True)
-#             st.markdown(f"<div class='assistant-answer'>Assistant: {entry['answer']}</div>", unsafe_allow_html=True)
-
-#         st.markdown("</div>", unsafe_allow_html=True)
-
-#         # Input form for new question
-#         with st.form(key='chat_form_popup', clear_on_submit=True):
-#             question = st.text_input("Ask a new question:", key='chat_input_popup')
-#             send = st.form_submit_button("Send")
-
-#             if send and question.strip():
-#                 # Pick the first course or adapt logic as needed
-#                 courses = session_db.query(Course).all()
-#                 if courses:
-#                     selected_course = courses[0]  # Simplified example
-#                     answer = chat_with_documents(selected_course, question)
-#                     st.session_state.chat_history.append({"question": question, "answer": answer})
-#                     st.experimental_rerun()
-
-#         # Close popup button
-#         if st.button("Close"):
-#             st.session_state.show_chat_popup = False
-#             st.experimental_rerun()
-
-#         st.markdown("</div></div>", unsafe_allow_html=True)
-#     # ---------------- NEW POPUP CODE END ---------------- 
-
-
+# --- Main Function ---
 
 def student_page():
     # Apply a dark theme similar to the professor page
@@ -1879,16 +1688,27 @@ def student_page():
                             if user_question.strip():
                                 with st.spinner("Processing your question..."):
                                     try:
+                                        # Generate response
                                         response = chat_with_documents(course, user_question)
                                         st.success("Response:")
                                         st.markdown(f"<div class='chat-response'><p>{response}</p></div>", unsafe_allow_html=True)
+
+                                        # Classify topic
+                                        topic = classify_topic(user_question)
+
+                                        # Define the path to your CSV file
+                                        csv_file_path = "ml_grouped_topics_questions.csv"
+
+                                        # Update the CSV in real-time
+                                        update_course_csv(csv_file_path, user_question, topic)
+
+                                        st.info(f"Your question has been classified under the topic: **{topic}** and recorded.")
                                     except Exception as e:
                                         st.error(f"An error occurred: {e}")
                             else:
                                 st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
 
                     st.markdown("</div>", unsafe_allow_html=True)
-
     # Popup code remains unchanged if present in the main code
 
 
@@ -2117,6 +1937,10 @@ def encode_video_to_base64(video_path):
 
 
 def manage_courses_section():
+    """
+    Allows professors to manage their courses, including adding/updating YouTube links,
+    uploading course materials, viewing insights, and deleting courses.
+    """
     st.header("Manage Your Courses")
     courses = session_db.query(Course).filter_by(professor_id=st.session_state.user.id).all()
 
@@ -2197,7 +2021,8 @@ def manage_courses_section():
                                 st.warning(f"File {uploaded_file.name} exceeds 10MB and was skipped.")
                                 continue
                             existing_file = session_db.query(CourseFile).filter_by(
-                                course_id=course.id, filename=uploaded_file.name).first()
+                                course_id=course.id, filename=uploaded_file.name
+                            ).first()
                             if existing_file:
                                 st.warning(f"File {uploaded_file.name} already exists and was skipped.")
                                 continue
@@ -2212,6 +2037,56 @@ def manage_courses_section():
                         course.files = session_db.query(CourseFile).filter_by(course_id=course.id).all()
                     else:
                         st.error("No files selected.")
+
+        # Section to toggle and display course insights
+        with st.expander(f"Course Insights for {course.name}", expanded=False):
+            # Initialize session state variables for this course if not already set
+            if f"show_insights_{course.id}" not in st.session_state:
+                st.session_state[f"show_insights_{course.id}"] = False
+
+            # Toggle Insights Button
+            toggle_label = "Hide Insights" if st.session_state[f"show_insights_{course.id}"] else "Show Insights"
+            if st.button(toggle_label, key=f"toggle_insights_{course.id}"):
+                st.session_state[f"show_insights_{course.id}"] = not st.session_state[f"show_insights_{course.id}"]
+
+            # Clear Insights Button
+            if st.button("Clear Insights", key=f"clear_insights_{course.id}"):
+                st.session_state[f"show_insights_{course.id}"] = False
+
+            # Display Insights if toggled on
+            if st.session_state[f"show_insights_{course.id}"]:
+                st.markdown("### Course Insights")
+                insights_container = st.container()
+                with insights_container:
+                    # Define the path to your backend CSV file (assuming one per course)
+                    csv_file_path = "ml_grouped_topics_questions.csv"  # Adjust path as needed
+
+                    if os.path.exists(csv_file_path):
+                        df = pd.read_csv(csv_file_path)
+                        if 'Topic' not in df.columns or 'Question' not in df.columns:
+                            st.error("CSV must have 'Topic' and 'Question' columns.")
+                        else:
+                            tabs = st.tabs(["📊 Pie Chart", "📈 Bar Chart", "☁️ Word Cloud", "📄 Report"])
+                            with tabs[0]:
+                                pie_fig = generate_pie_chart(df)
+                                st.plotly_chart(pie_fig, use_container_width=True)
+
+                            with tabs[1]:
+                                bar_fig = generate_bar_chart(df)
+                                st.plotly_chart(bar_fig, use_container_width=True)
+
+                            with tabs[2]:
+                                wordcloud_img = generate_wordcloud(df)
+                                st.image(f"data:image/png;base64,{wordcloud_img}", use_container_width=True)
+
+                            with tabs[3]:
+                                report = generate_csv_report(csv_file_path)
+                                if report.startswith("Error generating report"):
+                                    st.error(report)
+                                else:
+                                    st.markdown(report, unsafe_allow_html=True)
+                    else:
+                        st.error(f"CSV file not found at the specified path: {csv_file_path}")
 
         # Section to delete course
         st.markdown("### Delete Course")
@@ -2231,6 +2106,7 @@ def manage_courses_section():
                     st.experimental_rerun()
                 else:
                     st.error("Please confirm to delete the course.")
+
 
 
 def generate_pie_chart(df):   
