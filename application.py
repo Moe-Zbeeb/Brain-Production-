@@ -7,7 +7,17 @@ import base64
 import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
-
+import csv  
+import streamlit as st
+from langchain_openai import ChatOpenAI  # Ensure you have the correct package installed
+from langchain.schema import HumanMessage, SystemMessage
+from sentence_transformers import SentenceTransformer
+import urllib.request
+from bs4 import BeautifulSoup 
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+import os
+import numpy as np
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 from langchain.document_loaders import PyPDFLoader, TextLoader
@@ -15,7 +25,7 @@ from langchain.cache import InMemoryCache
 from langchain.chains import RetrievalQA
 from langchain.chains.summarize import load_summarize_chain
 from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+from langchain.prompts import PromptTemplate    
 from langchain.prompts import ChatPromptTemplate
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
@@ -27,8 +37,125 @@ from gtts import gTTS
 from models import User, Course, CourseFile, StudentQuestion
 from io import BytesIO
 from wordcloud import WordCloud, STOPWORDS
-from application1 import about_page,contact_page,inject_css, inject_css2,set_overlay_bg_image, encode_image_to_base64
+from application1 import about_page, contact_page, inject_css, inject_css2, set_overlay_bg_image, encode_image_to_base64
 from PIL import Image
+import os
+import base64
+import pandas as pd
+import streamlit as st
+import re
+import csv
+from datetime import datetime
+import logging
+import re
+import subprocess
+import assemblyai as aai
+
+aai.settings.api_key = "76e966abc56746f88f365735a37c766f"  # Replace with your API key
+
+def validate_youtube_url(url):
+    """Validate if a URL is a valid YouTube video link."""
+    pattern = r"^(https?://)?(www\.)?(youtube\.com|youtu\.?be)/.+$"
+    return re.match(pattern, url) is not None
+
+def download_audio_yt_dlp(video_url, output_dir):
+    """Download audio using yt-dlp with a custom user agent."""
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, "%(title)s.%(ext)s")
+        command = [
+            "yt-dlp",
+            "-x", "--audio-format", "mp3",
+            "--user-agent", "Mozilla/5.0",
+            "--output", output_file,
+            video_url
+        ]
+        subprocess.run(command, check=True)
+        return True
+    except Exception as e:
+        print(f"Error downloading audio for {video_url}: {e}")
+        return False
+
+def process_youtube_links(youtube_links, course, output_dir="transcripts"):
+    """Download audio from YouTube links, transcribe them, save transcripts, and add them to the vector DB."""
+    os.makedirs(output_dir, exist_ok=True)
+    transcriber = aai.Transcriber()
+    transcripts = {}
+
+    for link in youtube_links:
+        if not validate_youtube_url(link):
+            print(f"Invalid YouTube URL: {link}")
+            continue
+
+        print(f"Processing: {link}")
+        if not download_audio_yt_dlp(link, output_dir):
+            continue
+        
+        try:
+            # Find the downloaded MP3 file (assuming one link at a time)
+            audio_file = next((f for f in os.listdir(output_dir) if f.endswith(".mp3")), None)
+            if audio_file:
+                audio_path = os.path.join(output_dir, audio_file)
+                config = aai.TranscriptionConfig(speaker_labels=True)
+                transcript = transcriber.transcribe(audio_path, config)
+                
+                # Save transcript to a text file
+                transcript_file = os.path.join(output_dir, f"{audio_file}_transcript.txt")
+                with open(transcript_file, "w") as f:
+                    for utterance in transcript.utterances:
+                        f.write(f"Speaker {utterance.speaker}: {utterance.text}\n")
+                
+                print(f"Transcript saved: {transcript_file}")
+                
+                # Store transcript in dictionary
+                transcript_text = "\n".join(
+                    [f"Speaker {utterance.speaker}: {utterance.text}" for utterance in transcript.utterances]
+                )
+                transcripts[audio_file] = transcript_text
+                
+                # Save transcript to database
+                transcript_filename = f"{os.path.splitext(audio_file)[0]}_transcript.txt"
+                existing_file = session_db.query(CourseFile).filter_by(
+                    course_id=course.id, filename=transcript_filename
+                ).first()
+
+                if existing_file:
+                    print(f"Transcript file {transcript_filename} already exists, skipping.")
+                    continue
+
+                course_file = CourseFile(
+                    filename=transcript_filename,
+                    data=transcript_text.encode('utf-8'),
+                    course_id=course.id
+                )
+                session_db.add(course_file)
+                session_db.commit()
+                print(f"Transcript added to course {course.name} as course file.")
+
+                # Add transcript to vector database
+                docs = langchain_handler.load_document(transcript_file)
+                if docs:
+                    # Fetch existing vector store or create a new one
+                    vector_store = langchain_handler.create_vector_store(docs)
+                    if not vector_store:
+                        print(f"Failed to create vector store for {transcript_filename}.")
+                        continue
+                    
+                    # Check if course already has a vector store
+                    existing_vector_store = session_db.query(CourseFile).filter_by(course_id=course.id).first()
+                    if existing_vector_store:
+                        # Merge with existing vector store
+                        vector_store.merge(existing_vector_store)
+                        print(f"Transcript vectorized and merged into existing vector store for course {course.name}.")
+                    else:
+                        print(f"Transcript vectorized and added as new vector store for course {course.name}.")
+            else:
+                print(f"No audio file found for {link}.")
+        except Exception as e:
+            print(f"Error processing {link}: {e}")
+
+    return transcripts
+
 # ---------------------- Configuration ----------------------
 
 # Configure logging
@@ -41,7 +168,7 @@ cache = InMemoryCache()
 session_db = SessionLocal()
 
 # Fetch OpenAI API key from environment variables for security
-OPENAI_API_KEY = "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"  # Ensure this environment variable is set
+OPENAI_API_KEY = "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"  # Ensure this environment variable is set
 
 if not OPENAI_API_KEY:
     logging.error("OpenAI API key is not set.")
@@ -54,13 +181,13 @@ try:
         model="gpt-4",
         temperature=0.2,
         openai_api_key=OPENAI_API_KEY,
-        request_timeout=60  # seconds
     )
     logging.info("Successfully connected to OpenAI LLM.")
 except Exception as e:
     logging.error(f"Failed to initialize OpenAI LLM: {str(e)}")
     st.error(f"Failed to initialize OpenAI LLM: {str(e)}")
     st.stop()
+
 # ---------------------- LangchainHandler Class ----------------------
 
 class LangchainHandler:
@@ -106,42 +233,72 @@ class LangchainHandler:
             logging.error(f"Error creating vector store: {str(e)}")
             return None
 
+  
+    
     def get_response(self, vector_store, question):
         """
-        Get a response to the user's question using the vector store.
+        Get an academic response to the user's question using the vector store with guardrails.
+        
         :param vector_store: FAISS vector store.
         :param question: User's question string.
-        :return: Response string.
+        :return: Academic response string.
         """
         try:
+            # Configure the retriever to fetch the top 3 relevant documents
             retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+
+            # Define a custom prompt template with academic constraints
+            prompt_template = """
+            You are an academic assistant. Provide a clear, concise, and well-structured academic response to the question below.
+            Base your answer solely on the provided documents. Do not introduce information not contained within these documents.
+            Ensure that your response adheres to academic standards, including proper terminology and a formal tone.
+            Remember that you are a Teaching assistant you should not answer things not related to Documents Below, and please answer an answer that is garuanettted to be understood by the student.
+            Question: {question}
+
+            Documents:
+            {context}
+
+            Response:
+            """
+
+            # Initialize the prompt with the defined template
+            prompt = PromptTemplate(
+                template=prompt_template,
+                input_variables=["question", "context"]
+            )
+
+            # Initialize the RetrievalQA chain with the custom prompt via chain_type_kwargs
             qa_chain = RetrievalQA.from_chain_type(
                 llm=self.llm,
                 chain_type="stuff",
-                retriever=retriever
+                retriever=retriever,
+                chain_type_kwargs={"prompt": prompt}
             )
+
+            # Generate the response
             response = qa_chain.run(question)
-            logging.info("Generated response to user question.")
+            logging.info("Generated academic response to user question.")
             return response.strip()
+
         except Exception as e:
             logging.error(f"Error generating response: {str(e)}")
             return "Sorry, I couldn't process your question at the moment."
 
     def summarize_documents(self, documents):
-        """
-        Summarize the list of documents using the LLM.
-        :param documents: List of Document objects.
-        :return: Summary string.
-        """
-        try:
-            # Use the summarize chain with map_reduce to handle large documents
-            chain = load_summarize_chain(self.llm, chain_type="map_reduce")
-            summary = chain.run(documents)
-            logging.info("Generated summary of course materials.")
-            return summary.strip()
-        except Exception as e:
-            logging.error(f"Error during summarization: {str(e)}")
-            return "Sorry, I couldn't summarize the course materials at the moment."
+            """
+            Summarize the list of documents using the LLM.
+            :param documents: List of Document objects.
+            :return: Summary string.
+            """
+            try:
+                # Use the summarize chain with map_reduce to handle large documents
+                chain = load_summarize_chain(self.llm, chain_type="map_reduce")
+                summary = chain.run(documents)
+                logging.info("Generated summary of course materials.")
+                return summary.strip()
+            except Exception as e:
+                logging.error(f"Error during summarization: {str(e)}")
+                return "Sorry, I couldn't summarize the course materials at the moment."
 
     def generate_mcq_questions(self, documents, num_questions=10):
         """
@@ -261,38 +418,35 @@ class LangchainHandler:
             logging.error(f"Error converting text to speech with gTTS: {e}")
             return ""
 
+
 # Initialize LangchainHandler
 langchain_handler = LangchainHandler(llm=llm)
 
 # ---------------------- Helper Functions ----------------------
-def set_bg_image(image_path):
-    with open(image_path, "rb") as f:
-        data = f.read()
-    encoded_img = base64.b64encode(data).decode()
+def set_bg_image():
     st.markdown(
-        f"""
+        """
         <style>
-        .stApp {{
-            background-image: url("data:image/jpeg;base64,{encoded_img}");
-            background-size: cover;
-            background-position: center;
-        }}
+        .stApp {
+            background-color: white !important;
+        }
         </style>
         """,
         unsafe_allow_html=True
     )
 
+
 # ---------------------- Page Functions ----------------------
 
-bg_image_path = r"img\bg-image.jpg"
-set_bg_image(bg_image_path)
+bg_image_path = "img/myim.png"
+set_bg_image()
 
 def signup_page():
     inject_css()
-    bg_image_path = r"img\courses-6.jpg"
-    torn_edge_path = r"img\overlay-top.png"
+    bg_image_path = "img/courses-6.jpg"
+    torn_edge_path = "img/overlay-top.png"
 
-    bg_image_url =set_overlay_bg_image(bg_image_path)
+    bg_image_url = set_overlay_bg_image(bg_image_path)
     torn_edge_url = set_overlay_bg_image(torn_edge_path)
 
     st.markdown(f"""
@@ -454,7 +608,7 @@ def signup_page():
      """, unsafe_allow_html=True)
 
     st.markdown("<h2 style='text-align: center;'>Sign Up</h2>", unsafe_allow_html=True)
-    st.markdown("<p>Sign up now and start learning today!</p>", unsafe_allow_html=True)
+    st.markdown("<p>Sign up now and start Contributing to Edtech!</p>", unsafe_allow_html=True)
 
     with st.form(key="signup_form"):
          col1, col2 = st.columns(2)
@@ -485,21 +639,22 @@ def signup_page():
              else:
                  # Add user to the database
                  new_user = User(username=username.strip(), role=role)
-                 new_user.set_password(password)  # Assuming your User model has a `set_password` method
+                 new_user.set_password(password)  # Assuming your User model has a set_password method
                  session_db.add(new_user)
                  session_db.commit()
                  st.markdown('<div class="success-message">Account created successfully! You can now log in.</div>', unsafe_allow_html=True)
                  st.info("Please switch to the Login page.")
+
 def login_page():
     """
     Displays the login and signup page.
     """
     inject_css()
      # Paths to the background image and torn edge graphic
-    bg_image_path = r"img\courses-6.jpg"
-    torn_edge_path = r"img\overlay-top.png"
+    bg_image_path = "img/courses-6.jpg"
+    torn_edge_path = "img/overlay-top.png"
 
-    bg_image_url =set_overlay_bg_image(bg_image_path)
+    bg_image_url = set_overlay_bg_image(bg_image_path)
     torn_edge_url = set_overlay_bg_image(torn_edge_path)
 
     # CSS for the overlay container and torn edge
@@ -630,7 +785,7 @@ def login_page():
             }
             h2 {
                 font-size: 28px;
-                color: #0C013E;
+                color: #CCCCCC;
                 margin-bottom: 20px;
                 text-align: center;
             }
@@ -682,113 +837,110 @@ def login_page():
                     st.error("Invalid username or password.")
 
 def professor_page():
-    inject_css()
     if 'selected_tab' not in st.session_state:
         st.session_state.selected_tab = "Create Course" 
+
+    # Override Styles to Ensure a Full Dark Theme  
+    
     st.markdown("""
         <style>
-        /* Sidebar Styling */
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
+        /* Global Dark Background and Text */
+        html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"] {
+            background-color: #121212 !important;
+            color: #FFFFFF !important;
         }
+
+        /* Override Streamlit's main container background */
+        [data-testid="stAppViewContainer"] > div {
+            background-color: #121212 !important;
+        }
+
+        /* Sidebar Styling */
         .sidebar {
             position: fixed; 
             top: 0;
             left: 0;
             height: 100%; 
             width: 250px; 
-            background-color: #0A043C;
-            color: white; 
+            background-color: #1E1E1E;
+            color: #FFFFFF; 
             padding: 20px;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
         }
         .sidebar-header {
-            font-size: 20px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: 600;
             text-align: center;
-            margin-bottom: 20px;
-            margin-top: 70px;
-            color: white;
+            margin-bottom: 40px;
+            margin-top: 40px;
+            color: #BB86FC;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
         }
-        .nav-button {
-            position: relative;
-            top: -300px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 90%;
-            padding: 10px;
-            border-radius: 10px;
-            background-color: white;
-            color: #0044cc; 
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            border: 1px solid #ccc;
-            cursor: pointer;
-            text-decoration: none;
+
+        /* Buttons */
+        .stButton button {
+            width: 100%;
+            background-color: #2C2C2C !important;
+            color: #FFFFFF !important;
+            border: 1px solid #3C3C3C !important;
+            border-radius: 8px !important;
+            padding: 10px !important;
+            margin-top: 10px !important;
+            font-weight: 500 !important;
+            font-size: 16px !important;
         }
-        .nav-button:hover {
-            background-color: #f0f0f0; 
+        .stButton button:hover {
+            background-color: #3C3C3C !important;
+            border-color: #BB86FC !important;
+            color: #BB86FC !important;
         }
-        .nav-button img {
-            margin-right: 10px;
-            width: 20px;
-            height: 20px;
-        }
-        .logout-section {
-            margin-top: auto;
-            text-align: center;
-            color: white;
-        }
-        .logout-section p {
-            margin: 5px 0;
+
+        /* Logged-in Section */
+        .logged-in {
             font-size: 14px;
-            color: white;
+            margin-top: 20px;
+            color: #AAAAAA;
         }
-        .logout-button {
-            padding: 10px 20px;
+
+        /* Logout Button */
+        .stButton button.logout-button {
+            background-color: #BB86FC !important;
+            color: #121212 !important;
+            border: none !important;
+            margin-top: 20px !important;
+        }
+        .stButton button.logout-button:hover {
+            background-color: #9E63E3 !important;
+        }
+
+        /* Main Title */
+        h1 {
+            color: #BB86FC;
+            font-weight: 600;
+            font-size: 32px;
+            margin-top: 20px;
+        }
+
+        /* Divider */
+        hr.custom-divider {
             border: none;
-            border-radius: 5px;
-            background-color: white;
-            color: #0044cc;
-            font-weight: bold;
-            cursor: pointer;
+            border-top: 2px solid #333;
+            margin: 20px 0;
         }
-        .logout-button:hover {
-            background-color: #f0f0f0;
+
+        /* Main content spacing */
+        .main-content {
+            margin-left: 270px; 
+            padding: 20px;
         }
-    </head>
-    <body>
-        <div class="sidebar">
-            <!-- Sidebar header -->
-            <div class="sidebar-header">Navigation</div>
-
-            <!-- Navigation buttons -->
-            <a href="#" class="nav-button">
-                <img src="https://img.icons8.com/color/48/000000/book.png" alt="Create Course Icon">
-                Create Course
-            </a>
-            <a href="#" class="nav-button">
-                <img src="https://img.icons8.com/color/48/000000/settings.png" alt="Manage Courses Icon">
-                Manage Courses
-            </a>
-
-            <!-- Logout section -->
-            <div class="logout-section">
-                <p>Logged in as:</p>
-                <p>Hassan</p>
-                <button class="logout-button">Logout</button>
-            </div>
-        </div>
-    </body>
-    </style>
+        </style>
     """, unsafe_allow_html=True)
 
-    # Title and Content Divider
-    st.markdown("<h1 style='color: #003366;'> Professor Dashboard</h1>", unsafe_allow_html=True)
-    st.markdown("<div style='border-top: 2px solid #E6E6E6; margin: 20px 0;'></div>", unsafe_allow_html=True)
+    # Main Title and Divider
+    st.markdown("<div class='main-content'>", unsafe_allow_html=True)
+    st.markdown("<h1>Professor Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<hr class='custom-divider' />", unsafe_allow_html=True)
 
     # Sidebar Design
     with st.sidebar:
@@ -796,10 +948,10 @@ def professor_page():
         st.markdown("<div class='sidebar-header'>Navigation</div>", unsafe_allow_html=True)
 
         # Dynamic Buttons for Navigation
-        if st.button(" Create Course", key="create_course", use_container_width=True):
+        if st.button("Create Course", key="create_course"):
             st.session_state.selected_tab = "Create Course"
 
-        if st.button(" Manage Courses", key="manage_courses", use_container_width=True):
+        if st.button("Manage Courses", key="manage_courses"):
             st.session_state.selected_tab = "Manage Courses"
 
         # Logged-In User Info
@@ -807,7 +959,7 @@ def professor_page():
         st.markdown(f"<div class='logged-in'>{st.session_state.user.username}</div>", unsafe_allow_html=True)
 
         # Logout Button
-        if st.button("Logout", key="logout"):
+        if st.button("Logout", key="logout", help="Logout from your account", args=None, kwargs=None):
             st.session_state.user = None
             st.session_state.page = "home"
 
@@ -819,17 +971,25 @@ def professor_page():
     elif st.session_state.selected_tab == "Manage Courses":
         manage_courses_section()
 
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def home_page():
     inject_css()
 
-    bg_image_path = r"img\header.jpg"
-    torn_edge_path = r"img\overlay-top.png"
+    bg_image_path = "img/thinksmarter.png"
+    torn_edge_path = "img/overlay-top.png"
 
     bg_image_url = set_overlay_bg_image(bg_image_path)
     torn_edge_url = set_overlay_bg_image(torn_edge_path)
 
     st.markdown(f"""
         <style>
+            /* Increase the maximum width of the main content area */
+            .main .block-container {{
+                max-width: 1400px;
+                margin: 0 auto;
+            }}
             .overlay-container {{
                 position: relative;
                 width: 100%;
@@ -879,7 +1039,7 @@ def home_page():
                 z-index: 2;
             }}
             .section-wrapper {{
-            margin-top: 50px; 
+                margin-top: 50px; 
             }}
             .about-title {{
                 text-align: left; 
@@ -898,10 +1058,11 @@ def home_page():
                 color: white; 
                 padding: 20px;
                 border-radius: 10px; 
+                width: 100%;
+                box-sizing: border-box;
             }}
             .about-content {{
                 flex: 1;
-                max-width: 700px; 
                 margin: 10px;
                 line-height: 1.6; 
                 font-size: 16px;
@@ -917,18 +1078,10 @@ def home_page():
                 line-height: 1.8;
                 color: #444;
             }}
-            .about-content {{
-                flex: 1;
-                max-width: 50%; 
-                margin: 0; 
-                padding-top: 0; 
-            }}
-
             .about-image {{
                 position: relative;
                 top: 180px;
                 flex: 1;
-                max-width: 50%; 
                 margin-right: 20px; 
                 margin-left: 20px; 
                 display: flex;
@@ -945,6 +1098,8 @@ def home_page():
                 align-items: center;
                 padding: 20px;
                 gap: 0px; 
+                width: 100%;
+                box-sizing: border-box;
             }}
             .stat-card {{
                 flex: 0 1 25px; 
@@ -1001,12 +1156,13 @@ def home_page():
                 margin-right: 20px;
             }}
             .features-section {{
-                width: 2000px;
                 display: flex;
                 flex-direction: column;
                 gap: 20px; 
                 padding: 10px;
                 margin-bottom: 40px; 
+                width: 100%;
+                box-sizing: border-box;
             }}
             .feature-item {{
                 display: flex;
@@ -1065,65 +1221,125 @@ def home_page():
                 align-items: flex-start; 
             }}
             .graduate-image img{{
-                width: 100%; /* Ensure the image fills its container */
-                height: auto; /* Maintain aspect ratio */
+                width: 100%; 
+                height: auto; 
+            }}
+
+            /* Aligning the video better */
+            .about-video {{
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 10px;
+                position: relative;
+            }}
+            .about-video video {{
+                max-width: 100%;
+                height: auto;
+                border-radius: 10px;
             }}
         </style>
     """, unsafe_allow_html=True)
     st.markdown(f"""
-        <div class="overlay-container">
-            <div class="overlay"></div>
-            <div class="overlay-content">
-                <h1>ChatCourse</h1>
-                <h2>AI Teaching Assistant</h2>
-            </div>
-        </div>
-        <div class="torn-edge"></div>
+        <style>
+            .overlay-container {{
+                position: relative;
+                width: 100%;
+                height: 300px;
+                background-image: url("{bg_image_url}");
+                background-size: cover;
+                background-position: center;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }}
+        </style>
+        <div class="overlay-container"></div>
     """, unsafe_allow_html=True)
-    # About Section
-    image_path = r"img\about.jpg"
-    about_image = Image.open(image_path)
-    base64_image = encode_image_to_base64(about_image)
 
+    video_path = "img/upload_your_sources.mp4"  # Replace with your actual video path
+    base64_video = encode_video_to_base64(video_path)  # Ensure this function is defined
     st.markdown(f"""
+        <style>
+            .about-section {{
+                display: flex;
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center;
+                width: 100%;
+                color: #1C1C44;
+                padding: 20px;
+                box-sizing: border-box;
+                text-align: center;
+            }}
+            .about-content {{
+                max-width: 800px;
+                margin: 0 auto 30px auto; 
+                font-size: 16px;
+                line-height: 1.8;
+                color: #444;
+            }}
+            .about-content h2 {{
+                text-align: left; 
+                font-size: 30px; 
+                font-weight: bold; 
+                margin-bottom: 20px;
+            }}
+            .about-video {{
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative;
+                margin-top: 20px;
+            }}
+            .about-video video {{
+                max-width: 1000px; 
+                width: 100%;       
+                height: auto;
+                border-radius: 10px;
+                margin: 0 auto; 
+            }}
+        </style>
+
         <div class="about-section">
-            <div class="about-image">
-                <img src="data:image/png;base64,{base64_image}" alt="Graduate style="position: absolute; top: -30px;">
-            </div>
             <div class="about-content">
-                <p style="color: red; font-size: 18px; font-weight: bold; text-align: left; margin-bottom: 5px;">ABOUT US</p>
-                <h2 style="text-align: left; font-size: 30px; font-weight: bold; margin-bottom: 20px;">First Choice For Online Education Anywhere</h2>
+                <h2>Your Personalized AI Teaching Assistant With all of your sources in place</h2>
                 <p>Experience a revolutionary way to learn with our AI-powered educational platform. Combining the latest in artificial intelligence technology, our platform offers personalized learning experiences through an interactive AI chatbot, engaging flashcards, and adaptive learning tools. Whether you're preparing for exams, mastering new skills, or expanding your knowledge, our platform tailors content to your unique needs, helping you learn faster and more effectively. Discover a smarter, more efficient way to achieve your educational goals with the power of AI at your fingertips.</p>
             </div>
+            <div class="about-video">
+                <video autoplay loop muted controls>
+                    <source src="data:video/mp4;base64,{base64_video}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
         </div>
     """, unsafe_allow_html=True)
+
+
     st.markdown("""
         <div class="stats-section">
             <div class="stat-card green">
-                <div class="stat-label">AVAILABLE SUBJECTS</div>
+                <div class="stat-label">UPLOAD RESOURCES</div>
             </div>
             <div class="stat-card blue">
-                <div class="stat-label">ONLINE COURSES</div>
+                <div class="stat-label">INSTANT INSIGHTS</div>
             </div>
             <div class="stat-card red">
-                <div class="stat-label">SKILLED INSTRUCTORS</div>
+                <div class="stat-label">ASSESS KNOWLEDGE</div>
             </div>
             <div class="stat-card yellow">
-                <div class="stat-label">HAPPY STUDENTS</div>
+                <div class="stat-label">LEARN WITH PODCASTER</div>
             </div>
         </div>
-
     """, unsafe_allow_html=True)
-    image_path = r"img\feature.jpg"
-    about_image = Image.open(image_path)
-    base64_img = encode_image_to_base64(about_image)
+
     st.markdown(f"""
         <div class="about-section">
             <div class="graduate-image">
-                <img class="graduate-image" src="data:image/png;base64,{base64_img}" alt="Graduate">
             </div>
             <div class="about-content">
-                <p style="color: red; font-size: 18px; font-weight: bold; text-align: left; margin-bottom: 5px;">WHY CHOOSE US</p>
                 <h2 style="text-align: left; font-size: 30px; font-weight: bold; margin-bottom: 20px;">Why Should You Start Learning with Us?</h2>
                 <p>Join a platform that truly understands your learning needs. Our commitment to innovation ensures a unique, engaging, and personalized education experience. With tools designed to simplify complex topics and foster deep understanding, we empower learners to achieve their goals faster and more effectively. Experience the perfect blend of technology and expertise to take your learning journey to the next level. Let’s make your success our mission!</p>
             </div>
@@ -1136,20 +1352,18 @@ def home_page():
             <div class="feature-icon feature-icon-blue">
                 <img src="https://img.icons8.com/ios-filled/50/ffffff/graduation-cap.png" alt="Skilled Instructors Icon">
             </div>
-    <div class="feature-box">
             <div class="feature-text">
-                <h3>Skilled Instructors</h3>
-                <p>Learn from top professionals with years of teaching and industry experience.</p>
+                <h3>Power study</h3>
+                <p>Upload lecture recordings, textbook chapters, and research papers..</p>
             </div>
-        </div>
         </div>
         <div class="feature-item">
             <div class="feature-icon feature-icon-red">
                 <img src="https://img.icons8.com/ios-filled/50/ffffff/certificate.png" alt="International Certificate Icon">
             </div>
             <div class="feature-text">
-                <h3>International Certificate</h3>
-                <p>Earn certificates recognized globally, enhancing your credentials and opening up opportunities worldwide.</p>
+                <h3>Organize your thinking</h3>
+                <p>create a polished presentation outline, complete with key talking points and supporting evidence..</p>
             </div>
         </div>
         <div class="feature-item">
@@ -1157,163 +1371,454 @@ def home_page():
                 <img src="https://img.icons8.com/ios-filled/50/ffffff/class.png" alt="Online Classes Icon">
             </div>
             <div class="feature-text">
-                <h3>Online Classes</h3>
-                <p>Access flexible and engaging online classes designed to fit into your busy schedule, anytime, anywhere.</p>
+                <h3>Spark new ideas</h3>
+                <p>Fit learning into your schedule using podcasts, anytime, anywhere.</p>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
     inject_css2()
 
+# --- Helper Functions ---
+
+def classify_topic(question):
+    """
+    Classifies a question into an ML topic based on keyword matching.
+    
+    :param question: The question text.
+    :return: The determined topic as a string.
+    """
+    keyword_topic_map = {
+        'regression': 'Regression',
+        'classification': 'Classification',
+        'clustering': 'Clustering',
+        'neural network': 'Neural Networks',
+        'deep learning': 'Deep Learning',
+        'supervised learning': 'Supervised Learning',
+        'unsupervised learning': 'Unsupervised Learning',
+        'reinforcement learning': 'Reinforcement Learning',
+        'dimensionality reduction': 'Dimensionality Reduction',
+        'decision tree': 'Decision Trees',
+        'random forest': 'Random Forest',
+        'support vector machine': 'Support Vector Machines',
+        'k-means': 'K-Means Clustering',
+        'principal component analysis': 'PCA',
+        'natural language processing': 'NLP',
+        'computer vision': 'Computer Vision',
+        'gradient descent': 'Optimization',
+        'overfitting': 'Model Evaluation',
+        'underfitting': 'Model Evaluation',
+        'cross-validation': 'Model Evaluation',
+        # Add more mappings as needed
+    }
+    
+    question_lower = question.lower()
+    
+    for keyword, topic in keyword_topic_map.items():
+        if re.search(r'\b' + re.escape(keyword) + r'\b', question_lower):
+            return topic
+    
+    return 'General'  # Default topic if no keywords match
+
+def update_course_csv(csv_file_path, question, topic):
+    """
+    Appends a new question with its topic to the specified CSV file.
+    
+    :param csv_file_path: Path to the CSV file.
+    :param question: The question text.
+    :param topic: The classified topic of the question.
+    """
+    try:
+        # Log the CSV file path for debugging
+        logging.debug(f"CSV File Path: '{csv_file_path}'")
+        
+        # Extract directory from the CSV file path
+        directory = os.path.dirname(csv_file_path)
+        
+        # Only attempt to create directories if a directory path is provided
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+            logging.debug(f"Ensured directory exists: '{directory}'")
+        else:
+            logging.debug("No directory specified. Using current working directory.")
+        
+        # Check if the CSV file exists
+        file_exists = os.path.isfile(csv_file_path)
+        
+        # Open the CSV file in append mode
+        with open(csv_file_path, 'a', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['Topic', 'Question']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            
+            # If the file doesn't exist, write the header
+            if not file_exists:
+                writer.writeheader()
+                logging.debug("CSV header written.")
+            
+            # Write the new row
+            writer.writerow({
+                'Topic': topic,
+                'Question': question
+            })
+        
+        logging.info(f"Appended question to CSV: Topic='{topic}', Question='{question}'")
+    
+    except Exception as e:
+        logging.error(f"Failed to update CSV: {e}")
+
+# --- Main Function ---
+
+def generate_youtube_keyword(api_key, query):
+    """
+    Generate a YouTube search keyword using LangChain.
+    """
+    chat = ChatOpenAI(openai_api_key=api_key, model="gpt-3.5-turbo", temperature=0.7)
+    messages = [
+        SystemMessage(content="You are an expert at generating YouTube search keywords."),
+        HumanMessage(content=f"Suggest a good YouTube search keyword for this topic: {query}")
+    ]
+    try:
+        response = chat.invoke(messages)
+        return response.content.strip()
+    except Exception as e:
+        return f"Error: {e}"
+
+def search_youtube(keyword, num_results=10):
+    """
+    Search YouTube and return the specified number of video links.
+    """
+    search_keyword = keyword.replace(" ", "+")
+    url = f"https://www.youtube.com/results?search_query={search_keyword}"
+    html = urllib.request.urlopen(url).read()
+    soup = BeautifulSoup(html, 'html.parser')
+    video_ids = re.findall(r"watch\?v=(\S{11})", str(soup))
+    return [f"https://www.youtube.com/watch?v={video_id}" for video_id in video_ids[:num_results]] if video_ids else []
+
+def download_transcripts(video_links, folder_path="transcripts"):
+    """
+    Download video transcripts and save them to a folder.
+    """
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    transcripts = {}
+    for i, video_link in enumerate(video_links):
+        video_id = video_link.split("=")[-1]
+        transcript_path = os.path.join(folder_path, f"transcript_{video_id}.txt")
+        # Simulated transcript fetching (replace with actual API if needed)
+        fake_transcript = f"Transcript for video {video_id}"  # Replace with actual transcript fetching logic
+        with open(transcript_path, 'w', encoding='utf-8') as file:
+            file.write(fake_transcript)
+        transcripts[video_id] = fake_transcript
+
+    return transcripts
+
+def embed_transcripts(transcripts, model_name='all-MiniLM-L6-v2'):
+    """
+    Generate embeddings for transcripts.
+    """
+    model = SentenceTransformer(model_name)
+    embeddings = {}
+    for video_id, transcript in transcripts.items():
+        embedding = model.encode(transcript, convert_to_numpy=True)
+        embeddings[video_id] = embedding
+    return embeddings
+
+def recommend_video(query_embedding, video_embeddings):
+    """
+    Recommend the most relevant video based on similarity to the query embedding.
+    """
+    video_ids = list(video_embeddings.keys())
+    embeddings = np.array(list(video_embeddings.values()))
+    similarities = cosine_similarity([query_embedding], embeddings)[0]
+    top_index = similarities.argmax()
+    return video_ids[top_index], similarities[top_index]
+
 def student_page():
-    inject_css()
+    # Apply a dark theme similar to the professor page
+    st.markdown("""
+    <style>
+    /* Global Dark Background and Text */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stVerticalBlock"] {
+        background-color: #121212 !important;
+        color: #FFFFFF !important;
+    }
+
+    [data-testid="stAppViewContainer"] > div {
+        background-color: #121212 !important;
+    }
+
+    /* Styling headings and dividers */
+    h1, h2, h3, h4, h5, h6 {
+        color: #BB86FC;
+        font-family: "Arial", sans-serif;
+    }
+    h1 {
+        font-size: 32px;
+        font-weight: 600;
+        margin-top: 20px;
+    }
+    h2 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    h3 {
+        font-size: 20px;
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: #CCCCCC;
+    }
+
+    /* Cards and Containers */
+    .course-card, .hidden-details, .flashcard, .mcq, .summary, .chat-response {
+        background-color: #1E1E1E;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+    }
+    .course-card:hover, .flashcard:hover, .mcq:hover, .summary:hover, .chat-response:hover {
+        background-color: #292929;
+        transform: scale(1.02);
+    }
+
+    /* Text and Links */
+    p {
+        color: #CCCCCC;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    a {
+        color: #BB86FC;
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+
+    /* Buttons */
+    .stButton button {
+        background-color: #2C2C2C !important;
+        color: #FFFFFF !important;
+        border: 1px solid #3C3C3C !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        margin-top: 10px !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+    .stButton button:hover {
+        background-color: #3C3C3C !important;
+        border-color: #BB86FC !important;
+        color: #BB86FC !important;
+    }
+    .view-details-button {
+        background-color: #4A90E2 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        padding: 8px 16px !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        border-radius: 5px !important;
+        cursor: pointer !important;
+        transition: background-color 0.3s ease !important;
+        margin-top: 10px !important;
+    }
+    .view-details-button:hover {
+        background-color: #357ABD !important;
+    }
+
+    /* Response Containers */
+    .flashcard, .mcq, .summary, .chat-response {
+        border-left: 5px solid #4A90E2;
+    }
+    .flashcard h4, .mcq h4, .summary h4, .chat-response p {
+        margin-bottom: 10px;
+        color: #4A90E2;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #1E1E1E;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #4A90E2;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #357ABD;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("""
         <style>
         .dashboard-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            text-align: center;
-            color: #4A90E2;
-        }
-
-        .divider {
-            border-top: 2px solid #E6E6E6;
-            margin: 20px 0;
-        }
-
-        .expander-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .section-header {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin: 20px 0;
-            color: #4A90E2;
-        }
-
-        .feature-box {
-            background-color: #F9F9F9;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .form-button {
-            background-color: #4A90E2;
             color: white;
-            font-weight: bold;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .form-button:hover {
-            background-color: #357ABD;
-        }
-
-        .info-message {
-            font-size: 1rem;
-            color: #FF4B4B;
-            font-weight: bold;
         }
         </style>
+        <h1 class='dashboard-title'>My Courses</h1>
     """, unsafe_allow_html=True)
 
-    # Dashboard Title
-    st.markdown("<h1 style='color: #003366;'> Student Dashboard</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-
-    # ------------------ Available Courses Section ------------------
-    st.markdown("<h2 class='section-header' style='color: #003366;'>Available Courses</h2>", unsafe_allow_html=True)
     courses = session_db.query(Course).all()
 
     if not courses:
         st.info("No courses available at the moment.")
         return
 
+    if "opened_course_id" not in st.session_state:
+        st.session_state.opened_course_id = None
+
     for course in courses:
-        
-        with st.expander(f"📘 {course.name}", expanded=False):
-            # Display Files Section
-            st.markdown("<h3 class='expander-title'>📁 Course Material</h3>", unsafe_allow_html=True)
-            if session_db.query(CourseFile).filter_by(course_id=course.id).count() > 0:
-                for file in course.files:
-                    file_bytes = base64.b64encode(file.data).decode()
-                    href = f'<a href="data:file/octet-stream;base64,{file_bytes}" download="{file.filename}" class="form-button">{file.filename}</a>'
-                    st.markdown(href, unsafe_allow_html=True)
-            else:
-                st.markdown("<p class='info-message'>No material uploaded for this course.</p>", unsafe_allow_html=True)
+        with st.container():
+            # Display Course Card
+            st.markdown(f"""
+            <div class='course-card'>
+                <h3 style="color: #BB86FC;">{course.name}</h3>
+                <p><strong>Professor:</strong> {course.professor_id}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-            # Generate Podcast Feature
-            st.markdown("<div class='feature-box'>", unsafe_allow_html=True)
-            generate_podcast_for_course(course, OPENAI_API_KEY)
-            st.markdown("</div>", unsafe_allow_html=True)
+            # View Details Button
+            if st.button(f"View Details for {course.name}", key=f"view_details_{course.id}"):
+                if st.session_state.opened_course_id == course.id:
+                    st.session_state.opened_course_id = None
+                else:
+                    st.session_state.opened_course_id = course.id
 
-            # Chat with Course Material
-            st.markdown("<h3 class='expander-title'>💬 Chat with Course Material</h3>", unsafe_allow_html=True)
-            with st.form(key=f'chat_form_{course.id}', clear_on_submit=True):
-                user_question = st.text_input(f"Ask a question about {course.name}:", key=f"question_input_{course.id}")
-                submit = st.form_submit_button("Send", use_container_width=True)
-                if submit:
-                    if user_question.strip():
-                        with st.spinner("Processing your question..."):
-                            try:
-                                response = chat_with_documents(course, user_question)
-                                st.success("Response:")
-                                st.markdown(f"<p style='color: black;'>{response}</p>", unsafe_allow_html=True)
-                            except Exception as e:
-                                st.error(f"An error occurred: {e}")
-                    else:
-                        st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
+            # Show Details if opened
+            if st.session_state.opened_course_id == course.id:
+                with st.container():
+                    st.markdown("<div class='hidden-details'>", unsafe_allow_html=True)
+                    st.markdown(f"<h3>Details for {course.name}</h3>", unsafe_allow_html=True)
 
-            # Study with Flashcards
-            st.markdown("<h3 class='expander-title'>📚 Study with Flashcards</h3>", unsafe_allow_html=True)
-            with st.form(key=f'flashcards_form_{course.id}', clear_on_submit=True):
-                submit = st.form_submit_button("Generate Flashcards", use_container_width=True)
-                if submit:
-                    with st.spinner("Generating flashcards..."):
-                        try:
-                            flashcards = generate_flashcards_for_course(course)
-                            st.success("🃏 Here are your flashcards:")
-                            st.write(flashcards)
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
+                    # Podcast Feature
+                    generate_podcast_for_course(course, OPENAI_API_KEY)
 
-            # Assess Your Knowledge (MCQs)
-            st.markdown("<h3 class='expander-title'>📝 Assess Your Knowledge</h3>", unsafe_allow_html=True)
-            with st.form(key=f'mcq_form_{course.id}', clear_on_submit=True):
-                submit = st.form_submit_button("Generate MCQs", use_container_width=True)
-                if submit:
-                    with st.spinner("Generating MCQs..."):
-                        try:
-                            mcqs = generate_mcq_for_course(course)
-                            st.success("🔍 Multiple-Choice Questions:")
-                            st.write(mcqs)
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
+                    # Flashcards
+                    st.markdown("<h3>📚 Study with Flashcards</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'flashcards_form_{course.id}', clear_on_submit=True):
+                        submit = st.form_submit_button("Generate Flashcards")
+                        if submit:
+                            with st.spinner("Generating flashcards..."):
+                                try:
+                                    flashcards = generate_flashcards_for_course(course)
+                                    st.success("🃏 Here are your flashcards:")
+                                    st.markdown(f"<div class='flashcard'>{flashcards.replace('\n', '<br>')}</div>", unsafe_allow_html=True)
+                                except Exception as e:
+                                    st.error(f"An error occurred: {e}")
 
-            # Summarize Course
-            st.markdown("<h3 class='expander-title'>📄 Summarize Course</h3>", unsafe_allow_html=True)
-            with st.form(key=f'summarize_form_{course.id}', clear_on_submit=True):
-                submit = st.form_submit_button("Get Summary", use_container_width=True)
-                if submit:
-                    with st.spinner("Generating summary..."):
-                        try:
-                            summary = summarize_course_documents(course)
-                            st.success("📖 Course Summary:")
-                            st.write(summary)
-                        except Exception as e:
-                            st.error(f"An error occurred: {e}")
+                    # MCQs
+                    st.markdown("<h3>📝 Assess Your Knowledge</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'mcq_form_{course.id}', clear_on_submit=True):
+                        submit = st.form_submit_button("Generate MCQs")
+                        if submit:
+                            with st.spinner("Generating MCQs..."):
+                                try:
+                                    mcqs = generate_mcq_for_course(course)
+                                    st.success("🔍 Multiple-Choice Questions:")
+                                    mcq_list = mcqs.strip().split('\n\n')
+                                    for mcq_item in mcq_list:
+                                        if mcq_item.strip():
+                                            st.markdown(f"<div class='mcq'><strong>{mcq_item.replace('\n', '<br>')}</strong></div>", unsafe_allow_html=True)
+                                except Exception as e:
+                                    st.error(f"An error occurred: {e}")
+
+                    # Summarize Course
+                    st.markdown("<h3>📄 Summarize Course</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'summarize_form_{course.id}', clear_on_submit=True):
+                        submit = st.form_submit_button("Get Summary")
+                        if submit:
+                            with st.spinner("Generating summary..."):
+                                try:
+                                    summary = summarize_course_documents(course)
+                                    st.success("📖 Course Summary:")
+                                    st.markdown(f"<div class='summary'>{summary.replace('\n', '<br>')}</div>", unsafe_allow_html=True)
+                                except Exception as e:
+                                    st.error(f"An error occurred: {e}")
+
+                    # Chat with Documents
+                    st.markdown("<h3>💬 Chat with Course Material</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'chat_form_{course.id}', clear_on_submit=True):
+                        user_question = st.text_input(f"Ask a question about {course.name}:", key=f"question_input_{course.id}")
+                        submit = st.form_submit_button("Send")
+                        if submit:
+                            if user_question.strip():
+                                with st.spinner("Processing your question..."):
+                                    try:
+                                        # Generate response
+                                        response = chat_with_documents(course, user_question)
+                                        st.success("Response:")
+                                        st.markdown(f"<div class='chat-response'><p>{response}</p></div>", unsafe_allow_html=True)
+
+                                        # Classify topic
+                                        topic = classify_topic(user_question)
+
+                                        # Define the path to your CSV file
+                                        csv_file_path = os.path.join("data", "ml_grouped_topics_questions.csv")  # Specify directory
+
+                                        # Update the CSV in real-time
+                                        update_course_csv(csv_file_path, user_question, topic)
+
+                                        st.info(f"Your question has been classified under the topic: **{topic}** and recorded.")
+                                    except Exception as e:
+                                        st.error(f"An error occurred: {e}")
+                            else:
+                                st.markdown("<p class='info-message'>Please enter a question.</p>", unsafe_allow_html=True)
+
+                    # Add the YouTube Recommendation Feature
+                    st.markdown("<h3>📺 Find Relevant YouTube Video</h3>", unsafe_allow_html=True)
+                    with st.form(key=f'youtube_form_{course.id}', clear_on_submit=True):
+                        youtube_query = st.text_input("Enter your query for YouTube search:", key=f"youtube_input_{course.id}")
+                        submit_youtube = st.form_submit_button("Find Best Video")
+                        if submit_youtube:
+                            if youtube_query.strip():
+                                with st.spinner("Processing your query..."):
+                                    try:
+                                        # Step 1: Generate a refined YouTube search keyword
+                                        refined_query = generate_youtube_keyword(OPENAI_API_KEY, youtube_query)
+                                        st.markdown(f"**Generated Keyword:** {refined_query}")
+
+                                        # Step 2: Search YouTube for videos
+                                        video_links = search_youtube(refined_query, num_results=3)
+                                        if not video_links:
+                                            st.error("No videos found. Please refine your query.")
+                                        else:
+                                            st.markdown(f"**Video Links:**")
+                                            for link in video_links:
+                                                st.markdown(f"- {link}")
+
+                                            # Step 3: Download transcripts for the top 3 videos
+                                            transcripts = download_transcripts(video_links)
+
+                                            # Step 4: Embed transcripts
+                                            video_embeddings = embed_transcripts(transcripts)
+
+                                            # Step 5: Generate query embedding and recommend the best video
+                                            model = SentenceTransformer('all-MiniLM-L6-v2')
+                                            query_embedding = model.encode(youtube_query, convert_to_numpy=True)
+                                            best_video_id, similarity = recommend_video(query_embedding, video_embeddings)
+
+                                            best_video_link = f"https://www.youtube.com/watch?v={best_video_id}"
+                                            st.success(f"**Best Video:** [{best_video_link}]({best_video_link})\n")  
+                                            st.video(best_video_link)
+
+                                    except Exception as e:
+                                        st.error(f"An error occurred: {e}")
+                            else:
+                                st.error("Please enter a query.")
+
+                    st.markdown("</div>", unsafe_allow_html=True)
 def generate_podcast_for_course(course, openai_api_key):
     """
     Allows students to generate a podcast based on the course materials or by uploading additional PDFs.
     """
-    # Initialize session state for podcast if not already set
     podcast_audio_key = f"podcast_audio_{course.id}"
     script_key = f"script_{course.id}"
     if podcast_audio_key not in st.session_state:
@@ -1321,13 +1826,10 @@ def generate_podcast_for_course(course, openai_api_key):
     if script_key not in st.session_state:
         st.session_state[script_key] = ""
 
-    st.markdown("<h3 style='color: black;'>🎙 Generate Podcast for This Course</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: White;'>🎙 Generate Podcast for This Course</h3>", unsafe_allow_html=True)
 
-
-    # Create a container for better layout management
     with st.container():
-        # Upload PDF Files Section
-        st.markdown("<h4 style='color: black;'>Upload Additional PDF File(s) for Podcast</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: White;'>Upload Additional PDF File(s) for Podcast</h4>", unsafe_allow_html=True)
         uploaded_files = st.file_uploader(
             f" Upload PDF File(s) for {course.name}",
             accept_multiple_files=True,
@@ -1335,11 +1837,8 @@ def generate_podcast_for_course(course, openai_api_key):
             key=f"podcast_upload_{course.id}"
         )
 
-
-# Global CSS override for Streamlit alert messages
         st.markdown("""
 <style>
-/* Target any alert box and all elements inside it */
 div[role="alert"], 
 div[role="alert"] * {
     color: black !important;
@@ -1364,19 +1863,16 @@ div[role="alert"] * {
                     st.warning(f"No text extracted from {uploaded_file.name}.")
 
             if all_text:
-                # Generate Podcast Script
                 st.info("Generating podcast script...")
                 script = langchain_handler.generate_podcast_script(all_text, openai_api_key)
                 if script:
                     st.session_state[script_key] = script
                     st.success("Podcast script generated successfully!")
 
-                    # Display Script Optionally
                     if st.checkbox(" View Generated Script", key=f"view_script_{course.id}"):
                         st.markdown("### Generated Podcast Script")
                         st.write(script)
 
-                    # Convert Script to Audio
                     st.info("Converting script to audio...")
                     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
                     output_filename = f"podcast_{course.id}_{timestamp}.mp3"
@@ -1385,8 +1881,6 @@ div[role="alert"] * {
                     if podcast_audio_path:
                         st.session_state[podcast_audio_key] = podcast_audio_path
                         st.success("Audio podcast generated successfully!")
-
-                        # Play Audio
                         st.markdown("###  Listen to Your Podcast")
                         st.audio(podcast_audio_path, format='audio/mp3')
                     else:
@@ -1397,12 +1891,6 @@ div[role="alert"] * {
                 st.error("No text extracted from the uploaded files.")
 
 def chat_with_documents(course, question):
-    """
-    Load the course documents, create a vector store, get a response using RAG, and store the student's question.
-    :param course: Course object containing the files.
-    :param question: User's question string.
-    :return: Response string from OpenAI.
-    """
     documents = []
     for file in course.files:
         try:
@@ -1410,7 +1898,6 @@ def chat_with_documents(course, question):
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1421,12 +1908,10 @@ def chat_with_documents(course, question):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Create vector store
     vector_store = langchain_handler.create_vector_store(documents)
     if not vector_store:
         raise ValueError("Failed to create vector store from documents.")
 
-    # Get response
     response = langchain_handler.get_response(vector_store, question)
 
     # Store the student's question
@@ -1448,11 +1933,6 @@ def chat_with_documents(course, question):
     return response
 
 def summarize_course_documents(course):
-    """
-    Generate a summary of the course materials.
-    :param course: Course object containing the files.
-    :return: Summary string.
-    """
     documents = []
     for file in course.files:
         try:
@@ -1460,7 +1940,6 @@ def summarize_course_documents(course):
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1471,24 +1950,16 @@ def summarize_course_documents(course):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Generate summary using LangChainHandler
     summary = langchain_handler.summarize_documents(documents)
     return summary
 
 def generate_mcq_for_course(course):
-    """
-    Generate MCQs from the course materials.
-    :param course: Course object containing the files.
-    :return: String containing the MCQs.
-    """
     documents = []
     for file in course.files:
         try:
-            # Save the file to a temporary location
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1499,24 +1970,16 @@ def generate_mcq_for_course(course):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Generate MCQs using LangChainHandler
     mcqs = langchain_handler.generate_mcq_questions(documents)
     return mcqs
 
 def generate_flashcards_for_course(course):
-    """
-    Generate flashcards from the course materials.
-    :param course: Course object containing the files.
-    :return: String containing the flashcards.
-    """
     documents = []
     for file in course.files:
         try:
-            # Save the file to a temporary location
             with tempfile.NamedTemporaryFile(delete=False, suffix=file.filename) as tmp_file:
                 tmp_file.write(file.data)
                 tmp_file_path = tmp_file.name
-            # Load the document using LangchainHandler
             docs = langchain_handler.load_document(tmp_file_path)
             if docs:
                 documents.extend(docs)
@@ -1527,13 +1990,10 @@ def generate_flashcards_for_course(course):
     if not documents:
         raise ValueError("No readable course materials available.")
 
-    # Generate flashcards using LangChainHandler
     flashcards = langchain_handler.generate_flashcards(documents)
     return flashcards
+
 def extract_text_from_pdf(pdf_file_path_or_object):
-    """
-    Extract text from a PDF file.
-    """
     try:
         if isinstance(pdf_file_path_or_object, str):
             pdf_reader = PyPDF2.PdfReader(pdf_file_path_or_object)
@@ -1549,12 +2009,11 @@ def extract_text_from_pdf(pdf_file_path_or_object):
     except Exception as e:
         logging.error(f"Error extracting text from PDF: {e}")
         return ""
+
 def navigate_to(page):
     st.session_state.page = page
+
 def create_course_section():
-    """
-    Allows professors to create a new course.
-    """
     st.header("Create a New Course")
     with st.form(key='create_course_form'):
         course_name = st.text_input("Course Name")
@@ -1570,15 +2029,20 @@ def create_course_section():
             session_db.add(new_course)
             session_db.commit()
             st.success(f"Course '{course_name}' created successfully!")
-            # Update the courses list in session state
             if 'courses' in st.session_state:
                 st.session_state.courses.append(new_course)
             else:
                 st.session_state.courses = [new_course]
 
+def encode_video_to_base64(video_path):
+    with open(video_path, "rb") as video_file:
+        return base64.b64encode(video_file.read()).decode('utf-8')
+
+
 def manage_courses_section():
     """
-    Allows professors to manage their courses, including viewing the pie chart, bar chart, word cloud, report, and deleting courses.
+    Allows professors to manage their courses, including adding/updating YouTube links,
+    uploading course materials, viewing insights, and deleting courses.
     """
     st.header("Manage Your Courses")
     courses = session_db.query(Course).filter_by(professor_id=st.session_state.user.id).all()
@@ -1587,137 +2051,169 @@ def manage_courses_section():
         st.info("You have not created any courses yet.")
         return
 
-    # Define the path to your backend CSV file
-    csv_file_path = "ml_grouped_topics_questions.csv"  # <-- UPDATE THIS PATH
-    book_icon_path = r"img\book.png"
-    with open(book_icon_path, "rb") as img_file:
-        base64_book_icon = base64.b64encode(img_file.read()).decode()
-
     for course in courses:
-        st.markdown(
-    f"""
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <img src="data:image/png;base64,{base64_book_icon}" alt="Book Icon" style="width: 24px; height: 24px;">
-        <span style="font-size: 20px; font-weight: bold; color: black !important;">{course.name}</span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+        st.markdown(f"### {course.name}")
+        
+        # Section to add or update YouTube links
+        with st.expander(f"Add/Update YouTube Link for {course.name}", expanded=False):
+            current_link = course.youtube_link or "No link provided yet."
+            st.markdown(f"**Current YouTube Link:** {current_link}")
+            
+            with st.form(key=f"youtube_form_{course.id}"):
+                youtube_link = st.text_input("Enter YouTube Link", value=course.youtube_link or "")
+                submit_link = st.form_submit_button("Save YouTube Link")
+                if submit_link:
+                    if youtube_link.strip():
+                        course.youtube_link = youtube_link.strip()
+                        session_db.commit()
+                        st.success("YouTube link updated successfully!")
 
-        with st.container():
-            col1, col2 = st.columns([1, 1])
+                        # Process transcripts and add them to vector DB
+                        st.info("Processing YouTube link for transcripts...")
+                        transcripts = process_youtube_links([youtube_link], course, output_dir="transcripts")
 
-            with col1:
-                st.markdown("#### Upload Course Materials")
-                with st.form(key=f'upload_form_{course.id}', clear_on_submit=True):
-                    uploaded_files = st.file_uploader(
-                        "Upload files (PDF or TXT)", accept_multiple_files=True,
-                        key=f"upload_{course.id}"
-                    )
-                    submit = st.form_submit_button("Upload Files")
-                    if submit:
-                        if uploaded_files:
-                            for uploaded_file in uploaded_files:
-                                if uploaded_file.size > 10 * 1024 * 1024:  # 10 MB
-                                    st.warning(f"File {uploaded_file.name} exceeds 10MB and was skipped.")
-                                    continue
+                        if transcripts:
+                            # Save each transcript as a CourseFile and add to vector DB
+                            for audio_file, transcript_text in transcripts.items():
+                                transcript_filename = f"{os.path.splitext(audio_file)[0]}_transcript.txt"
+                                
+                                # Check if a transcript file with the same name already exists
                                 existing_file = session_db.query(CourseFile).filter_by(
-                                    course_id=course.id, filename=uploaded_file.name).first()
+                                    course_id=course.id, filename=transcript_filename
+                                ).first()
+
                                 if existing_file:
-                                    st.warning(f"File {uploaded_file.name} already exists and was skipped.")
+                                    st.warning(f"Transcript file {transcript_filename} already exists, skipping.")
                                     continue
+
+                                # Save transcript to database
                                 course_file = CourseFile(
-                                    filename=uploaded_file.name,
-                                    data=uploaded_file.read(),
+                                    filename=transcript_filename,
+                                    data=transcript_text.encode('utf-8'),
                                     course_id=course.id
                                 )
                                 session_db.add(course_file)
+                                
+                                # Add transcript to the vector DB
+                                docs = langchain_handler.load_document(transcript_filename)
+                                if docs:
+                                    vector_store = langchain_handler.create_vector_store(docs)
+                                    if vector_store:
+                                        st.success(f"Transcript vectorized and added to the course vector DB.")
+                                    else:
+                                        st.error(f"Failed to vectorize transcript: {transcript_filename}")
                             session_db.commit()
-                            st.success("Files uploaded successfully!")
-                            # Update the course files in session state
-                            course.files = session_db.query(CourseFile).filter_by(course_id=course.id).all()
+                            st.success("Transcripts added as course materials!")
                         else:
-                            st.error("No files selected.")
-
-                st.markdown("#### Current Files")
-                if session_db.query(CourseFile).filter_by(course_id=course.id).count() > 0:
-                    for file in course.files:
-                        file_bytes = base64.b64encode(file.data).decode()
-                        href = f'<a href="data:file/octet-stream;base64,{file_bytes}" download="{file.filename}">{file.filename}</a>'
-                        st.markdown(href, unsafe_allow_html=True)
-                else:
-                    st.info("No files uploaded for this course.")
-
-        
-                st.markdown("#### Course Insights")
-                # Initialize session state variables for this course if not already set
-                if f"show_insights_{course.id}" not in st.session_state:
-                    st.session_state[f"show_insights_{course.id}"] = False
-
-                if st.button("Toggle Insights", key=f"toggle_insights_{course.id}"):
-                    st.session_state[f"show_insights_{course.id}"] = not st.session_state[f"show_insights_{course.id}"]
-
-                # Clear All Button
-                if st.button("Clear Insights", key=f"clear_insights_{course.id}"):
-                    st.session_state[f"show_insights_{course.id}"] = False
-
-        # Display Visualizations and Report
-        if st.session_state[f"show_insights_{course.id}"]:
-            st.markdown("### Course Insights")
-            insights_container = st.container()
-            with insights_container:
-                if os.path.exists(csv_file_path):
-                    df = pd.read_csv(csv_file_path)
-                    if 'Topic' not in df.columns or 'Question' not in df.columns:
-                        st.error("CSV must have 'Topic' and 'Question' columns.")
-                        continue
-
-                    tabs = st.tabs(["📊 Pie Chart", "📈 Bar Chart", "☁️ Word Cloud", "📄 Report"])
-                    with tabs[0]:
-                        pie_fig = generate_pie_chart(df)
-                        st.plotly_chart(pie_fig, use_container_width=True)
-
-                    with tabs[1]:
-                        bar_fig = generate_bar_chart(df)
-                        st.plotly_chart(bar_fig, use_container_width=True)
-
-                    with tabs[2]:
-                        wordcloud_img = generate_wordcloud(df)
-                        st.image(f"data:image/png;base64,{wordcloud_img}", use_container_width =True)
-
-                    with tabs[3]:
-                        report = generate_csv_report(csv_file_path)
-                        if report.startswith("Error generating report"):
-                            st.error(report)
-                        else:
-                            st.markdown(report, unsafe_allow_html=True)
-                else:
-                    st.error(f"CSV file not found at the specified path: {csv_file_path}")
-
-        # Delete Course
-        with st.container():
-            st.markdown("### Delete Course")
-            with st.form(key=f'delete_course_form_{course.id}', clear_on_submit=True):
-                confirm = st.checkbox("Are you sure you want to delete this course? This action cannot be undone.", key=f"confirm_delete_{course.id}")
-                submit = st.form_submit_button("Delete Course")
-                if submit:
-                    if confirm:
-                        for file in course.files:
-                            session_db.delete(file)
-                        session_db.delete(course)
-                        session_db.commit()
-                        st.success(f"Course '{course.name}' deleted successfully!")
-                        # Refresh the page or update session state as needed
-                        st.experimental_rerun()
+                            st.warning("No transcripts were generated. Please ensure the YouTube link is correct and try again.")
+                        
                     else:
-                        st.error("Please confirm to delete the course.")
+                        st.error("YouTube link cannot be empty.")
 
-def generate_pie_chart(df):
-    """
-    Generate an interactive pie chart using Plotly.
-    :param df: DataFrame containing the 'Topic' column.
-    :return: Plotly figure.
-    """
+        # Section to upload course materials
+        with st.expander(f"Upload Course Materials for {course.name}", expanded=False):
+            with st.form(key=f'upload_form_{course.id}', clear_on_submit=True):
+                uploaded_files = st.file_uploader(
+                    "Upload files (PDF or TXT)", accept_multiple_files=True, key=f"upload_{course.id}"
+                )
+                submit = st.form_submit_button("Upload Files")
+                if submit:
+                    if uploaded_files:
+                        for uploaded_file in uploaded_files:
+                            if uploaded_file.size > 10 * 1024 * 1024:
+                                st.warning(f"File {uploaded_file.name} exceeds 10MB and was skipped.")
+                                continue
+                            existing_file = session_db.query(CourseFile).filter_by(
+                                course_id=course.id, filename=uploaded_file.name
+                            ).first()
+                            if existing_file:
+                                st.warning(f"File {uploaded_file.name} already exists and was skipped.")
+                                continue
+                            course_file = CourseFile(
+                                filename=uploaded_file.name,
+                                data=uploaded_file.read(),
+                                course_id=course.id
+                            )
+                            session_db.add(course_file)
+                        session_db.commit()
+                        st.success("Files uploaded successfully!")
+                        course.files = session_db.query(CourseFile).filter_by(course_id=course.id).all()
+                    else:
+                        st.error("No files selected.")
+
+        # Section to toggle and display course insights
+        with st.expander(f"Course Insights for {course.name}", expanded=False):
+            # Initialize session state variables for this course if not already set
+            if f"show_insights_{course.id}" not in st.session_state:
+                st.session_state[f"show_insights_{course.id}"] = False
+
+            # Toggle Insights Button
+            toggle_label = "Hide Insights" if st.session_state[f"show_insights_{course.id}"] else "Show Insights"
+            if st.button(toggle_label, key=f"toggle_insights_{course.id}"):
+                st.session_state[f"show_insights_{course.id}"] = not st.session_state[f"show_insights_{course.id}"]
+
+            # Clear Insights Button
+            if st.button("Clear Insights", key=f"clear_insights_{course.id}"):
+                st.session_state[f"show_insights_{course.id}"] = False
+
+            # Display Insights if toggled on
+            if st.session_state[f"show_insights_{course.id}"]:
+                st.markdown("### Course Insights")
+                insights_container = st.container()
+                with insights_container:
+                    # Define the path to your backend CSV file (assuming one per course)
+                    csv_file_path = "data/ml_grouped_topics_questions.csv"  # Adjust path as needed
+
+                    if os.path.exists(csv_file_path):
+                        df = pd.read_csv(csv_file_path)
+                        if 'Topic' not in df.columns or 'Question' not in df.columns:
+                            st.error("CSV must have 'Topic' and 'Question' columns.")
+                        else:
+                            tabs = st.tabs(["📊 Pie Chart", "📈 Bar Chart", "☁️ Word Cloud", "📄 Report"])
+                            with tabs[0]:
+                                pie_fig = generate_pie_chart(df)
+                                st.plotly_chart(pie_fig, use_container_width=True)
+
+                            with tabs[1]:
+                                bar_fig = generate_bar_chart(df)
+                                st.plotly_chart(bar_fig, use_container_width=True)
+
+                            with tabs[2]:
+                                wordcloud_img = generate_wordcloud(df)
+                                st.image(f"data:image/png;base64,{wordcloud_img}", use_container_width=True)
+
+                            with tabs[3]:
+                                report = generate_csv_report(csv_file_path)
+                                if report.startswith("Error generating report"):
+                                    st.error(report)
+                                else:
+                                    st.markdown(report, unsafe_allow_html=True)
+                    else:
+                        st.error(f"CSV file not found at the specified path: {csv_file_path}")
+
+        # Section to delete course
+        st.markdown("### Delete Course")
+        with st.form(key=f'delete_course_form_{course.id}', clear_on_submit=True):
+            confirm = st.checkbox(
+                "Are you sure you want to delete this course? This action cannot be undone.",
+                key=f"confirm_delete_{course.id}"
+            )
+            submit = st.form_submit_button("Delete Course")
+            if submit:
+                if confirm:
+                    for file in course.files:
+                        session_db.delete(file)
+                    session_db.delete(course)
+                    session_db.commit()
+                    st.success(f"Course '{course.name}' deleted successfully!")
+                    st.experimental_rerun()
+                else:
+                    st.error("Please confirm to delete the course.")
+
+
+
+def generate_pie_chart(df):   
+    print("generating pie chart")
     topic_counts = df['Topic'].value_counts().reset_index()
     topic_counts.columns = ['Topic', 'Count']
     fig = px.pie(topic_counts, names='Topic', values='Count', title='Topic Distribution',
@@ -1725,12 +2221,8 @@ def generate_pie_chart(df):
     fig.update_traces(textposition='inside', textinfo='percent+label')
     return fig
 
-def generate_bar_chart(df):
-    """
-    Generate an interactive horizontal bar chart using Plotly.
-    :param df: DataFrame containing the 'Topic' column.
-    :return: Plotly figure.
-    """
+def generate_bar_chart(df): 
+    print("generating bar chart")
     topic_counts = df['Topic'].value_counts().sort_values(ascending=True).reset_index()
     topic_counts.columns = ['Topic', 'Count']
     fig = px.bar(topic_counts, x='Count', y='Topic', orientation='h',
@@ -1738,12 +2230,8 @@ def generate_bar_chart(df):
     fig.update_layout(showlegend=False)
     return fig
 
-def generate_wordcloud(df):
-    """
-    Generate a word cloud image.
-    :param df: DataFrame containing the 'Question' column.
-    :return: Base64 encoded image string.
-    """
+def generate_wordcloud(df):  
+    print("generating word cloud")
     text = " ".join(df['Question'].dropna().tolist())
     wordcloud = WordCloud(width=800, height=400,
                           background_color='white',
@@ -1760,29 +2248,18 @@ def generate_wordcloud(df):
     encoded = base64.b64encode(img_bytes).decode()
     plt.close(fig)
     return encoded
+
 def generate_csv_report(csv_file_path):
-    """
-    Generate a detailed report from the CSV file using the LLM.
-    :param csv_file_path: Path to the CSV file.
-    :return: String containing the report.
-    """
     try:
         df = pd.read_csv(csv_file_path)
-        # Remove any PII or sensitive information if present
-        # For example, if there is a 'StudentID' column:
-        # df = df.drop(columns=['StudentID'], errors='ignore')
-        
-        # Sample data if too large
-        max_rows = 500  # Adjust based on the token limit (you may need to experiment)
+        max_rows = 500
         if len(df) > max_rows:
             df_sample = df.sample(n=max_rows, random_state=42)
         else:
             df_sample = df
 
-        # Convert the DataFrame to a CSV string
         csv_data = df_sample.to_csv(index=False)
         
-        # Define the prompt template
         template = """
         You are a data analyst assisting a professor in understanding student questions from a course.
         Based on the following CSV data, generate a detailed and rich report that includes:
@@ -1791,7 +2268,10 @@ def generate_csv_report(csv_file_path):
         - The number of unique topics covered.
         - Insights into the most common topics.
         - Any noticeable trends or patterns.
-        - Suggestions for areas that may need more focus based on the questions.
+        - Suggestions for areas that may need more focus based on the questions.  
+        - you are also a data analyst assisting a professor in understanding student questions from a course. 
+        - Based on the following CSV data, generate a detailed and rich report that includes: 
+        - How can we improve the course content to address these questions?
 
         CSV Data:
         {csv_data}
@@ -1811,17 +2291,16 @@ def generate_csv_report(csv_file_path):
     except Exception as e:
         logging.error(f"Error generating detailed report: {str(e)}")
         return f"Error generating report: {e}"
-    
-    
+
 st.markdown("""
 <style>
-/* Target the expander using the exact data-testid from the HTML */
 [data-testid="stExpander"] .streamlit-expanderHeader, 
 [data-testid="stExpander"] .streamlit-expanderHeader * {
     color: black !important;
 }
 </style>
 """, unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 h3#listen-to-your-podcast, 
@@ -1831,15 +2310,16 @@ h3#listen-to-your-podcast * {
 </style>
 """, unsafe_allow_html=True)
 
-
-
-# ---------------------- Main Function ----------------------
 def main():
-
     if "user" not in st.session_state:
         st.session_state.user = None
     if "page" not in st.session_state:
         st.session_state.page = "home"
+    # Initialize popup-related states here
+    if "show_chat_popup" not in st.session_state:
+        st.session_state["show_chat_popup"] = False
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
 
     page_mapping = {
         "home": home_page,
@@ -1876,4 +2356,4 @@ def main():
         page_mapping.get(st.session_state.page, home_page)()
 
 if __name__ == "__main__":
-    main()
+    main() 
