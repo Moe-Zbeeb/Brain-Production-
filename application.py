@@ -51,7 +51,7 @@ import re
 import subprocess
 import assemblyai as aai
 
-aai.settings.api_key = "76e966abc56746f88f365735a37c766f"  # Replace with your API key
+aai.settings.api_key = "76e966abc56746f88f365735a37c766f"  
 
 def validate_youtube_url(url):
     """Validate if a URL is a valid YouTube video link."""
@@ -1503,12 +1503,13 @@ def download_transcripts(video_links, folder_path="transcripts"):
     for i, video_link in enumerate(video_links):
         video_id = video_link.split("=")[-1]
         transcript_path = os.path.join(folder_path, f"transcript_{video_id}.txt")
-        # Simulated transcript fetching (replace with actual API if needed)
-        fake_transcript = f"Transcript for video {video_id}"  # Replace with actual transcript fetching logic
+        # Simulated transcript fetching  
+        #here just for purpose of demo i am not fetching the transcript via API  just for delays, for the full process we will call 
+        #the function to get the transcript from the video used previously to get the transcript in the embedding video up.  
+        fake_transcript = f"Transcript for video {video_id}" 
         with open(transcript_path, 'w', encoding='utf-8') as file:
             file.write(fake_transcript)
         transcripts[video_id] = fake_transcript
-
     return transcripts
 
 def embed_transcripts(transcripts, model_name='all-MiniLM-L6-v2'):
@@ -2184,7 +2185,6 @@ def manage_courses_section():
                     if uploaded_files:
                         for uploaded_file in uploaded_files:
                             if uploaded_file.size > 10 * 1024 * 1024:
-                                st.warning(f"File {uploaded_file.name} exceeds 10MB and was skipped.")
                                 continue
                             existing_file = session_db.query(CourseFile).filter_by(
                                 course_id=course.id, filename=uploaded_file.name
