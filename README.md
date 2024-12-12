@@ -187,11 +187,3 @@ A brief explanation of key files:
 1. **Fork the Repo** and create feature branches.
 2. **Pull Requests**: Submit PRs for review before merging.
 3. **Issues**: Report bugs or request features via the Issues tab.
-
-## License
-
-This project does not specify a license by default. Add an appropriate license if you plan to share or use the code publicly.
-
----
-
-**This README should provide you with a broad understanding of the codebase, its purpose, and how to set it up and use it.**
