@@ -1,8 +1,4 @@
-Below is a comprehensive README file that describes the purpose, setup, and usage of the provided codebase, along with its main features and components.
 
----
-
-# README
 
 ## Overview
 
