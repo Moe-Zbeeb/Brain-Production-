@@ -1,53 +1,89 @@
 ```markdown
 # T"AI" - Technical Documentation
 
-This document provides an in-depth technical overview of the T"AI" (Your Personalized AI Teaching Assistant) system. It is aimed at software engineers and developers who need a detailed understanding of the codebase, architecture, and workflows.
+This document provides a comprehensive technical overview of the T"AI" (Your Personalized AI Teaching Assistant) system. It is intended for software engineers and developers who require a detailed understanding of the codebase, architecture, and workflows.
 
 ---
 
 ## Overview
 
-T"AI" is a Streamlit-based educational platform that integrates with various AI models and services. It provides functionalities for:
+T"AI" integrates Large Language Models (LLMs), vector stores, and other AI services into a Streamlit-based application that enhances the teaching and learning experience. It provides:
 
-- **User Management (Professors & Students)**: Authentication, role-based access control.
-- **Course Management**: Creating, updating, and deleting courses.
-- **Document Ingestion & Processing**: Uploading PDFs and text files, embedding, and vectorizing documents.
-- **AI-Powered Features**:
-  - **Question Answering**: Retrieval-augmented Q&A over uploaded course materials.
-  - **Summarization**: High-level summaries of course content.
-  - **MCQ & Flashcard Generation**: Automated question and flashcard creation to aid study.
-  - **Podcast Generation**: Converting documents into audio form using text-to-speech (gTTS).
-- **YouTube Integration**: Transcription and semantic retrieval of relevant YouTube content.
-- **Analytics & Insights**: Topic classification, CSV-based logging, and data visualization.
+- **Role-based User Management**: Professors can create/manage courses; students can access and interact with them.
+- **Document Ingestion & Vectorization**: PDFs and text files are uploaded, parsed, embedded, and stored in a FAISS vector store.
+- **AI-Powered Tools**:
+  - **Question Answering (Retrieval-Augmented)**: Students ask questions; the LLM responds with context from ingested docs.
+  - **Summarization, MCQs, Flashcards**: Automatically generate summaries, quizzes, and study aids from course materials.
+  - **Podcast Generation**: Convert text-based materials into a podcast script, then to audio via gTTS.
+- **YouTube Integration**: Fetch transcripts from YouTube videos, integrate into vector store, and recommend relevant videos.
+- **Analytics & Insights**: Log and classify student questions, produce visualizations and reports from CSV data.
 
 ---
 
 ## Architecture
 
 **Front-End**:  
-- **Streamlit** for UI/UX: Responsive front-end to interact with the system.
-- **Session State**: Manages user sessions and state across page interactions.
+- **Streamlit**: Renders UI components, handles file uploads, user interactions, and session states.
 
 **Back-End**:  
-- **Database & ORM**: SQLite DB via SQLAlchemy for persistent storage of users, courses, and files.
-- **Data Models**:
-  - **User**: Stores `username`, `password_hash`, `role`.
-  - **Course**: Linked to a `User` (professor) and can store references to `CourseFile` and `YouTube` links.
-  - **CourseFile**: Binary data for course materials (PDFs, transcripts).
-  - **StudentQuestion**: Logs every student question.
-
-- **AI Integration**:
-  - **LangChain**: Abstracts LLM interactions, document loaders, chunking, retrieval, and prompt templates.
-  - **OpenAI API**: GPT-4 or GPT-3.5 models for text generation, embeddings.
-  - **FAISS**: Vector store for semantic retrieval of documents.
-  - **SentenceTransformers**: For additional embedding and semantic similarity tasks.
-  - **gTTS**: Converts generated podcast scripts into MP3 audio files.
-  - **AssemblyAI** (optional): For YouTube transcript extraction.
-
+- **Database & ORM**: SQLite via SQLAlchemy models (`User`, `Course`, `CourseFile`, `StudentQuestion`).
+- **LLM Integration**: OpenAI GPT-based models through LangChain (with retrieval chains, prompt templates, and embeddings).
+- **Vector Store**: FAISS for semantic search and retrieval.
+- **External Tools**:
+  - **PyPDF2** for PDF extraction.
+  - **AssemblyAI** for transcription (optional).
+  - **gTTS** for text-to-speech.
+  - **Plotly**, **Matplotlib**, and **WordCloud** for analytics.
+  
 **Data Flow**:
-1. **Document Upload** → **Extraction & Chunking** → **Embedding** → **FAISS Vector Store**.
-2. **User Query** → **Vector Retrieval** → **LLM Prompt** → **LLM Response** (grounded in docs).
-3. **Analytics**: User questions are logged, topics inferred, and CSV updated.
+1. **Ingestion**: PDFs → Extract text → Chunking → Embeddings → Vector Store.
+2. **Q&A**: Question → Retrieval from Vector Store → LLM → Answer.
+3. **Analytics**: Questions logged in CSV → Data Visualization & Topic Classification.
+
+---
+
+## Deployment & Running the Application
+
+T"AI" can be run locally or inside a Docker container.
+
+### Environment Setup
+
+1. **Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Environment Variables**:
+   Create a `.env` file in the project root with:
+   ```dotenv
+   OPENAI_API_KEY=your-openai-api-key
+   ASSEMBLYAI_API_KEY=your-assemblyai-api-key
+   ```
+   The `OPENAI_API_KEY` is mandatory. `ASSEMBLYAI_API_KEY` is needed for YouTube transcription functionality.
+
+### Running Locally
+
+```bash
+streamlit run application.py
+```
+
+Access the UI at `http://localhost:8501`.
+
+### Running with Docker
+
+A `Dockerfile` is provided for containerized deployment. You can build and run it as follows:
+
+1. **Build the Image**:
+   ```bash
+   docker build -t tai-assistant .
+   ```
+
+2. **Run the Container**:
+   ```bash
+   docker run -p 8501:8501 --env-file .env tai-assistant
+   ```
+
+Access the UI at `http://localhost:8501`.
 
 ---
 
@@ -55,177 +91,99 @@ T"AI" is a Streamlit-based educational platform that integrates with various AI 
 
 ```plaintext
 project/
-├─ application.py         # Main Streamlit application (UI, routes, logic)
-├─ application1.py        # Additional UI components, CSS injection, static pages
-├─ base.py                # Base declarative for SQLAlchemy models
-├─ models.py              # SQLAlchemy models (User, Course, CourseFile, StudentQuestion)
-├─ database.py            # Database session factory (SessionLocal)
-├─ data/                  # CSV files for analytics (e.g., ml_grouped_topics_questions.csv)
-├─ img/                   # Image assets for UI styling
-├─ requirements.txt        # Python dependencies
-└─ ... (other resources)
+├─ application.py         # Main application (UI, logic, authentication)
+├─ application1.py        # Additional styling, static pages (About, Contact, Home)
+├─ base.py                # SQLAlchemy base
+├─ models.py              # ORM models (User, Course, etc.)
+├─ database.py            # DB session creation
+├─ data/                  # CSV files for analytics
+├─ img/                   # Image assets
+├─ Dockerfile             # Docker build instructions
+├─ requirements.txt       # Dependencies
+└─ ... (other assets)
 ```
 
 ---
 
-## Key Components
+## Database Models
 
-### `application.py`
+- **User**: Stores `username`, `password_hash`, `role` (`professor` or `student`).
+- **Course**: Linked to a `User` (professor), stores `youtube_link` optionally.
+- **CourseFile**: Binary data (PDFs, transcripts) associated with a `Course`.
+- **StudentQuestion**: Logs student queries (`question`, `timestamp`).
 
-**Core logic file** that:
-
-- **User Pages**:  
-  - `signup_page()`: Registers new users, stores hashed passwords.
-  - `login_page()`: Authenticates users using bcrypt-hashed passwords.
-  
-- **Professor Dashboard**:
-  - `professor_page()`: Provides UI for creating courses, uploading materials, adding YouTube links.
-  - Document ingestion pipeline:
-    - PDF/text files → Extracted text via `PyPDF2`.
-    - Documents chunked by `CharacterTextSplitter` (LangChain).
-    - Embeddings generated by `OpenAIEmbeddings`.
-    - Indexed by a FAISS Vector Store.
-
-- **Student Dashboard**:
-  - `student_page()`: Lists courses, allows Q&A with course content.
-  - Q&A:
-    - User question → Vector retrieval for top-k docs.
-    - LangChain `RetrievalQA` chain with GPT → returns contextually relevant answers.
-  - MCQs & Flashcards:
-    - LLMChain with prompts to generate questions and flashcards from doc text.
-  - Summarization:
-    - `load_summarize_chain` (LangChain) to summarize documents using `map_reduce`.
-
-- **Podcast Feature**:
-  - Extract text from selected PDFs.
-  - Prompt GPT to create a podcast script.
-  - Use `gTTS` to convert script → MP3, served to user.
-
-- **YouTube Integration**:
-  - Validate URLs.
-  - Download audio with `yt-dlp`.
-  - Transcribe audio via AssemblyAI.
-  - Integrate transcript into vector store.
-
-- **Insights & Analytics**:
-  - Logs student questions to CSV.
-  - Topic classification via keyword matching.
-  - Visualizations with Plotly (Pie/Bar charts) and WordCloud.
-  - LLM-generated CSV report.
-
-### `application1.py`
-
-- Defines UI styling and helper functions for:
-  - About page
-  - Contact page
-  - Home page UI
-- Injects CSS, handles image overlays.
-
-### `models.py` and `base.py`
-
-- Defines the ORM schemas for `User`, `Course`, `CourseFile`, `StudentQuestion`.
-- Relationships between tables:
-  - `User` ↔ `Course` (One-to-Many)
-  - `Course` ↔ `CourseFile` (One-to-Many)
-  - `Course` ↔ `StudentQuestion` (One-to-Many)
-  - `User` ↔ `StudentQuestion` (One-to-Many)
-
-### `database.py`
-
-- Configures `SessionLocal` for SQLAlchemy.
-- Ensures that database sessions are properly instantiated and managed.
+All relationships are defined in `models.py` using SQLAlchemy ORM.
 
 ---
 
-## External Services and APIs
+## Core Functionalities
 
-- **OpenAI**: Requires `OPENAI_API_KEY`.
-- **AssemblyAI**: Requires `ASSEMBLYAI_API_KEY` for audio transcription.
-- **YouTube**: Uses `yt-dlp` command-line tool for downloading audio, parsing results.
+### Document Processing & Vectorization
 
----
+- Upload PDFs/text files.
+- Extract text using `PyPDF2`.
+- Chunk text with LangChain’s `CharacterTextSplitter`.
+- Embed using `OpenAIEmbeddings`.
+- Index chunks in a FAISS vector store.
 
-## Setup & Configuration
+### Q&A with Documents
 
-- **Environment Variables**:
-  - `OPENAI_API_KEY`: Your OpenAI key.
-  - `ASSEMBLYAI_API_KEY`: Your AssemblyAI key (optional).
-- **Virtual Environment**:
-  ```bash
-  pip install -r requirements.txt
-  ```
+- Retrieves the top `k` relevant documents from the FAISS store.
+- Uses LLM via LangChain’s `RetrievalQA` chain.
+- Answers are grounded in course materials.
 
-- **Running the App**:
-  ```bash
-  streamlit run application.py
-  ```
-  
-- Access at `http://localhost:8501`.
+### Summaries, MCQs, and Flashcards
 
----
+- **Summarization**: Uses `load_summarize_chain` to create a map-reduce summary.
+- **MCQs and Flashcards**: Prompt templates in LangChain generate exam-like questions or flashcards from course content.
 
-## Technical Considerations
+### Podcast Generation
 
-- **Chunking Strategy**:  
-  Documents are chunked into 2,000-character segments with a 100-character overlap to ensure semantic continuity. Tune `chunk_size` and `chunk_overlap` as needed.
+- Extract and combine selected text from course materials.
+- Prompt GPT to create a narrative podcast script.
+- Convert script to MP3 via `gTTS`.
 
-- **Retrieval Method**:  
-  FAISS vector stores are used. Future improvements may involve switching to a managed vector DB (e.g., Pinecone) or updating embeddings to newer models.
+### YouTube Integration
 
-- **Prompt Templates**:
-  - Summarization, MCQ, Flashcard generation relies on custom `PromptTemplate` instances.
-  - Consider adjusting temperature and model choices for different tasks.
+- Enter a YouTube link in the professor dashboard.
+- Download and transcribe audio (if API keys provided).
+- Store transcript as a `CourseFile` and integrate into the vector store.
 
-- **Caching & Performance**:
-  - Currently uses `InMemoryCache`.
-  - Scale by implementing persistent caching or a vector database.
-  - Proper batching of embeddings could speed up large document processing.
+### Analytics & Insights
 
-- **Security & Access Control**:
-  - Simple password hashing with bcrypt.
-  - No JWT or OAuth yet. Could be integrated for production use.
-  - Role checks ensure that only professors can create or manage courses.
+- **CSV Logging**: Student questions appended to `data/ml_grouped_topics_questions.csv`.
+- **Visualization**: Plotly for bar/pie charts, WordCloud for keywords.
+- **Report Generation**: GPT creates a textual report summarizing insights from the CSV.
 
 ---
 
-## Analytics & Insights
+## Technical Details
 
-- **CSV Logging**:
-  - Each student question is appended to a CSV: `ml_grouped_topics_questions.csv`.
-  - Can be used for offline analysis or feeding back into the model for improvement.
-
-- **Visualization**:
-  - Uses Plotly for pie and bar charts.
-  - Generates word clouds from student questions.
-  - LLM-based report summarizing CSV insights.
+- **LLM Model**: GPT-4 or GPT-3.5-turbo (adjustable in code).
+- **Chunk Size & Overlap**: Default chunking is 2,000 chars with 100 chars overlap. Tunable based on use-case.
+- **Caching**: In-memory caching via `InMemoryCache`. Consider persistent caching for scaling.
+- **Error Handling & Logging**: Python `logging` with `INFO` and `ERROR` levels. Try/except blocks around I/O and LLM calls.
 
 ---
 
-## Error Handling & Logging
+## Security & Access Control
 
-- **Logging**:
-  - Standard Python `logging` at `INFO` and `ERROR` levels.
-  - Critical paths (document load, LLM calls) wrapped in try/except with logged errors.
-
-- **Error Messages**:
-  - Streamlit displays user-friendly messages for known issues (empty uploads, no API keys, invalid YouTube links).
+- Passwords hashed using `bcrypt`.
+- Basic role checks (professors vs students).
+- Environment variables and `.env` for secret management.
 
 ---
 
 ## Extensibility
 
-- **Additional Document Types**:
-  - Implement loaders for DOCX, HTML.
-- **Additional LLMs**:
-  - Swap `ChatOpenAI` with other providers (Anthropic, Azure OpenAI).
-- **Scaling**:
-  - Integrate a cloud-based database.
-  - Containerize the app with Docker.
-  - Deploy on Streamlit Cloud or other hosting services.
+- **Alternative Vector Stores**: Pinecone, Weaviate, or ChromaDB.
+- **Additional Models**: Replace `OpenAIEmbeddings` or `ChatOpenAI` with other LLMs (e.g., Anthropic).
+- **Additional File Formats**: DOCX, HTML, and other loaders.
+- **Scaling**: Containerized deployments, use cloud-based managed databases, integrate authentication providers.
 
 ---
 
 ## Conclusion
 
-This documentation outlines the technical aspects and workflows of the T"AI" system. By following the architecture, understanding the code structure, and utilizing the provided prompts and pipelines, developers can maintain, extend, and optimize this AI-driven educational assistant.
+T"AI" provides a robust, AI-driven educational platform with easy extensibility. With a clean architecture, role-based access, and a spectrum of features (Q&A, summaries, MCQs, podcasts, analytics), it sets a foundation for advanced EdTech experiences. The `.env` file and optional Docker setup allow flexible deployment in various environments.
 ```
