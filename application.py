@@ -50,7 +50,8 @@ import logging
 import re
 import subprocess
 import assemblyai as aai
-
+from dotenv import load_dotenv
+load_dotenv()
 aai.settings.api_key = "76e966abc56746f88f365735a37c766f"  
 
 def validate_youtube_url(url):
@@ -166,7 +167,7 @@ cache = InMemoryCache()
 session_db = SessionLocal()
 
 # Fetch OpenAI API key from environment variables for security
-OPENAI_API_KEY = "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"  # Ensure this environment variable is set
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:
     logging.error("OpenAI API key is not set.")
