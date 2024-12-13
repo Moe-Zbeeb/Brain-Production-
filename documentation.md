@@ -182,7 +182,7 @@ All relationships are defined in `models.py` using SQLAlchemy ORM.
 
 ---
 
-## A one scroll code read with f strings and comments ( not actual code here !!)  
+## A one scroll for some selected main code/fucntions read with f strings and comments ( not actual code here !!)  
 ```markdown
 # Full Code Documentation
 
