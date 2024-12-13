@@ -4,20 +4,28 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Update system packages and install any required system-level dependencies
+# Update system packages and install required dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    build-essential \
+    gcc \
+    libdbus-1-dev \
+    libglib2.0-dev \
+    libssl-dev \
+    pkg-config \
+    meson \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file into the container
 COPY requirements.txt .
 
-# Upgrade pip and install dependencies from requirements.txt  
+# Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip  
+
 # Install torch first with a CPU-only version
 RUN pip install --no-cache-dir torch==2.0.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Then install the remaining requirements
+# Install the remaining Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code into the container
