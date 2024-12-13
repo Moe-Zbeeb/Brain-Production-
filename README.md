@@ -103,7 +103,7 @@ A brief explanation of key files:
    - `SentenceTransformers`
    - `FAISS`
    - `AssemblyAI` Python bindings
-   - `yt-dlp` (installed via `pip install yt-dlp` or your OS package manager)
+   - `yt-dlp` 
    - `BeautifulSoup4`, `urllib3` for web scraping
 
 3. **Set Environment Variables**:
