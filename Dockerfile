@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     meson \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file into the container
+# Copy only requirements.txt first (to leverage Docker caching)
 COPY requirements.txt .
 
 # Upgrade pip
@@ -28,8 +28,12 @@ RUN pip install --no-cache-dir torch==2.0.1+cpu --extra-index-url https://downlo
 # Install the remaining Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container
+# Copy the entire application code into the container
 COPY . .
+
+# Copy the .env file (ensure it's not ignored in .dockerignore)
+COPY .env .
+# ENV OPENAI_API_KEY=<your_default_key>
 
 # Expose the default Streamlit port
 EXPOSE 8501
