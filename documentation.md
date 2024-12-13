@@ -1,4 +1,3 @@
-```markdown
 # T"AI" - Technical Documentation
 
 This document provides a comprehensive technical overview of the T"AI" (Your Personalized AI Teaching Assistant) system. It is intended for software engineers and developers who require a detailed understanding of the codebase, architecture, and workflows.
@@ -18,7 +17,7 @@ T"AI" integrates Large Language Models (LLMs), vector stores, and other AI servi
 - **YouTube Integration**: Fetch transcripts from YouTube videos, integrate into vector store, and recommend relevant videos.
 - **Analytics & Insights**: Log and classify student questions, produce visualizations and reports from CSV data.
 
----
+
 
 ## Architecture
 
@@ -40,7 +39,7 @@ T"AI" integrates Large Language Models (LLMs), vector stores, and other AI servi
 2. **Q&A**: Question → Retrieval from Vector Store → LLM → Answer.
 3. **Analytics**: Questions logged in CSV → Data Visualization & Topic Classification.
 
----
+
 
 ## Deployment & Running the Application
 
