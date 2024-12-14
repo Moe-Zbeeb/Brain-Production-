@@ -1,4 +1,4 @@
-
+---
 
 ### **Notes for Docker: Building and Running **
 
@@ -22,6 +22,7 @@
      ```bash
      docker run --env-file .env -p 8501:8501 my-streamlit-app
      ```
+---
 ## Overview
 
 This repository contains a collection of Python modules, Streamlit applications, and database models aimed at creating an interactive educational platform enhanced by AI. It brings together several functionalities, including:
