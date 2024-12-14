@@ -1,28 +1,37 @@
+
+
+
+```markdown
+# **Docker: Building and Running**
+
+## **1. General Instructions**
+
+### **Build the Docker Image**
+```bash
+docker build --platform linux/amd64 -t my-streamlit-app .
+```
+
+### **Run the Docker Container**
+```bash
+docker run --env-file .env -p 8501:8501 my-streamlit-app
+```
+
 ---
 
-### **Notes for Docker: Building and Running **
+## **2. Instructions for Linux**
 
-#### **1 normally ... :**
-   - **Build**:
-     ```bash
-     docker build --platform linux/amd64 -t my-streamlit-app .
-     ```
-   - **Run**:
-     ```bash
-     docker run --env-file .env -p 8501:8501 my-streamlit-app
-     ```
+- Use `sudo` if required.
 
-#### **2. for linux :**
-   - Use `sudo` if required.
-   - **Build**:
-     ```bash
-     docker build -t my-streamlit-app .
-     ```
-   - **Run**:
-     ```bash
-     docker run --env-file .env -p 8501:8501 my-streamlit-app
-     ```
----
+### **Build the Docker Image**
+```bash
+sudo docker build -t my-streamlit-app .
+```
+
+### **Run the Docker Container**
+```bash
+sudo docker run --env-file .env -p 8501:8501 my-streamlit-app
+```
+```
 ## Overview
 
 This repository contains a collection of Python modules, Streamlit applications, and database models aimed at creating an interactive educational platform enhanced by AI. It brings together several functionalities, including:
