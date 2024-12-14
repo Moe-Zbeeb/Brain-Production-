@@ -31,7 +31,6 @@ sudo docker run --env-file .env -p 8501:8501 my-streamlit-app
 ```
 ```
 
-![image](https://github.com/user-attachments/assets/9f6348f2-c648-4023-aac2-55e283d6ed06)
 
 ## Overview
 
