@@ -29,7 +29,6 @@ sudo docker build -t my-streamlit-app .
 ```bash
 sudo docker run --env-file .env -p 8501:8501 my-streamlit-app
 ```
-```
 
 
 ## Overview
