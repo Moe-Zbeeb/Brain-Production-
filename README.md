@@ -1,5 +1,27 @@
 
 
+### **Notes for Docker: Building and Running **
+
+#### **1 normally ... :**
+   - **Build**:
+     ```bash
+     docker build --platform linux/amd64 -t my-streamlit-app .
+     ```
+   - **Run**:
+     ```bash
+     docker run --env-file .env -p 8501:8501 my-streamlit-app
+     ```
+
+#### **2. for linux :**
+   - Use `sudo` if required.
+   - **Build**:
+     ```bash
+     docker build -t my-streamlit-app .
+     ```
+   - **Run**:
+     ```bash
+     docker run --env-file .env -p 8501:8501 my-streamlit-app
+     ```
 ## Overview
 
 This repository contains a collection of Python modules, Streamlit applications, and database models aimed at creating an interactive educational platform enhanced by AI. It brings together several functionalities, including:
@@ -117,30 +139,7 @@ Here’s an improved, well-organized version of your Docker notes:
 
 ---
 
-### **Notes for Docker: Building and Running a Streamlit App**
 
-#### **1. If you are using an M2 Mac or any ARM-based laptop:**
-   - **Build**:
-     ```bash
-     docker build --platform linux/amd64 -t my-streamlit-app .
-     ```
-   - **Run**:
-     ```bash
-     docker run --env-file .env -p 8501:8501 my-streamlit-app
-     ```
-
-#### **2. If you are using any other system (e.g., AMD or Intel-based):**
-   - Use `sudo` if required.
-   - **Build**:
-     ```bash
-     docker build -t my-streamlit-app .
-     ```
-   - **Run**:
-     ```bash
-     docker run --env-file .env -p 8501:8501 my-streamlit-app
-     ```
-
----
 
 ### **Accessing Your Streamlit App**
 By default, your Streamlit app will run at:
