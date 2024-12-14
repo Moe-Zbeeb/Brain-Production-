@@ -31,10 +31,12 @@ sudo docker build -t my-streamlit-app .
 sudo docker run --env-file .env -p 8501:8501 my-streamlit-app
 ```
 ```
+
+![image](https://github.com/user-attachments/assets/9f6348f2-c648-4023-aac2-55e283d6ed06)
+
 ## Overview
 
 
-![image](https://github.com/user-attachments/assets/9f6348f2-c648-4023-aac2-55e283d6ed06)
 
 This repository contains a collection of Python modules, Streamlit applications, and database models aimed at creating an interactive educational platform enhanced by AI. It brings together several functionalities, including:
 
