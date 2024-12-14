@@ -113,17 +113,43 @@ A brief explanation of key files:
    ```bash
    streamlit run application.py
    ```
-5. **Or build and run a Docker image**
-         notes for docker :
-               if on M2 mac or any amd based laptop
-                                 build :   docker build --platform linux/amd64 -t my-streamlit-app .
-                                 run   :   docker run --env-file .env -p 8501:8501 my-streamlit-app
-               if on anything else, use sudo if needed :
-                                 build :   docker build  -t my-streamlit-app .
-                                 run   :   docker run --env-file .env -p 8501:8501 my-streamlit-app
-   
-   By default, Streamlit runs on `http://localhost:8501`.
+Here’s an improved, well-organized version of your Docker notes:
 
+---
+
+### **Notes for Docker: Building and Running a Streamlit App**
+
+#### **1. If you are using an M2 Mac or any ARM-based laptop:**
+   - **Build**:
+     ```bash
+     docker build --platform linux/amd64 -t my-streamlit-app .
+     ```
+   - **Run**:
+     ```bash
+     docker run --env-file .env -p 8501:8501 my-streamlit-app
+     ```
+
+#### **2. If you are using any other system (e.g., AMD or Intel-based):**
+   - Use `sudo` if required.
+   - **Build**:
+     ```bash
+     docker build -t my-streamlit-app .
+     ```
+   - **Run**:
+     ```bash
+     docker run --env-file .env -p 8501:8501 my-streamlit-app
+     ```
+
+---
+
+### **Accessing Your Streamlit App**
+By default, your Streamlit app will run at:
+
+   - **URL**: [http://localhost:8501](http://localhost:8501)
+
+Simply open this link in your browser to view the app.
+
+---
 ## Usage
 
 1. **Home Page**:  
@@ -163,19 +189,6 @@ A brief explanation of key files:
 - **Embeddings & Vector Store**:
   By default, it uses the `all-MiniLM-L6-v2` SentenceTransformer model. You can change the embedding model in `application.py` or other embedding scripts.
 
-## Troubleshooting
-
-- **Missing API Keys**:  
-  Ensure `OPENAI_API_KEY` and `ASSEMBLYAI_API_KEY` are set if using their functionalities.
-  
-- **PDF Extraction Errors**:  
-  Make sure PDFs are not encrypted. If they are, handle exceptions or convert them to a readable format.
-
-- **Audio Conversion Issues**:  
-  Check if `gTTS` is installed and if the system has network access (gTTS requires Google’s TTS service).
-
-- **FAISS Index Creation**:  
-  If index building fails, ensure you have `FAISS` installed correctly and that embeddings are generated.
 
 ## Contributing
 
