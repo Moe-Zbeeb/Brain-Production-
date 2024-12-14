@@ -32,7 +32,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Copy the .env file (ensure it's not ignored in .dockerignore)
-COPY .env .
+COPY .env .env
 # ENV OPENAI_API_KEY=<your_default_key>
 
 # Expose the default Streamlit port
