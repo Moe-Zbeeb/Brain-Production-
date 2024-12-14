@@ -1,4 +1,4 @@
-
+e
 
 ## Overview
 
@@ -105,16 +105,7 @@ A brief explanation of key files:
    - `AssemblyAI` Python bindings
    - `yt-dlp` 
    - `BeautifulSoup4`, `urllib3` for web scraping
-
-3. **Set Environment Variables**:
-   Ensure you have your **OpenAI API key**:
-   ```bash
-   export OPENAI_API_KEY="your_openai_api_key"
-   ```
-
-   If using AssemblyAI:
-   ```bash
-   export ASSEMBLYAI_API_KEY="your_assemblyai_api_key"
+3. **Modify the .env file**  
    ```
 
 4. **Run the App**:
@@ -122,6 +113,14 @@ A brief explanation of key files:
    ```bash
    streamlit run application.py
    ```
+5. **Or build and run a Docker image**
+         notes for docker :
+               if on M2 mac or any amd based laptop
+                                 build :   docker build --platform linux/amd64 -t my-streamlit-app .
+                                 run   :   docker run --env-file .env -p 8501:8501 my-streamlit-app
+               if on anything else, use sudo if needed :
+                                 build :   docker build  -t my-streamlit-app .
+                                 run   :   docker run --env-file .env -p 8501:8501 my-streamlit-app
    
    By default, Streamlit runs on `http://localhost:8501`.
 
