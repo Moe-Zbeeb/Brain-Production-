@@ -1,4 +1,3 @@
-![image](https://github.com/user-attachments/assets/a64de00d-41bc-4034-a53c-f30da4c3cb40)
 
 
 # Docker: Building and Running
